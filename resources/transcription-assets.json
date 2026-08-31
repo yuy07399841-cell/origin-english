@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "targetRoot": ".validation/listening-spike",
+  "model": {
+    "fileName": "ggml-small.en.bin",
+    "bytes": 487614201,
+    "sha256": "c6138d6d58ecc8322097e0f987c32f1be8bb0a18532a3f88f734d1bbf9c41e5d",
+    "sourceRevision": "c521a4b02f422512d734391fdf08bb08c0862f68",
+    "sourceUrl": "https://huggingface.co/ggerganov/whisper.cpp/resolve/c521a4b02f422512d734391fdf08bb08c0862f68/ggml-small.en.bin?download=true",
+    "license": "MIT",
+    "licenseUrl": "https://github.com/openai/whisper/blob/main/LICENSE"
+  },
+  "runtime": {
+    "name": "whisper.cpp Windows x64 BLAS",
+    "version": "1.9.3",
+    "build": "b4938",
+    "archiveBytes": 21147582,
+    "archiveUrl": "https://github.com/ggml-org/whisper.cpp/releases/download/b4938/whisper-blas-bin-x64.zip",
+    "archiveDirectory": "Release",
+    "targetDirectory": "whisper-runtime/Release",
+    "license": "MIT",
+    "licenseUrl": "https://github.com/ggml-org/whisper.cpp/blob/master/LICENSE",
+    "files": [
+      {
+        "name": "whisper-cli.exe",
+        "sha256": "b6b27a4b7ce9543382344ba273ea82bac35f821ca4317cf16710e16b26791e0f"
+      },
+      {
+        "name": "ggml-base.dll",
+        "sha256": "522b12f2d5150f1a219f1279c45aad33a726fc4b97d289b6bd0ac5272517565d"
+      },
+      {
+        "name": "ggml-blas.dll",
+        "sha256": "d98c878bfc179177459d990f75dcb24f16dab4c220740d6b418b9418d6ca9498"
+      },
+      {
+        "name": "ggml-cpu-alderlake.dll",
+        "sha256": "ab4f4c0672c1c145bee9536333b90fc8fe73f90f38c0909ffc82a36a8dcdb413"
+      },
+      {
+        "name": "ggml-cpu-cannonlake.dll",
+        "sha256": "935eb28a867b3eacfa15485df46cdab5d4a34c0fa175d557e4b99fadd175af64"
+      },
+      {
+        "name": "ggml-cpu-cascadelake.dll",
+        "sha256": "b883b388c2a1e23cd5dbca06bca4ee62f87aa57b3fb3c9dece66e2ddf8e6c51e"
+      },
+      {
+        "name": "ggml-cpu-haswell.dll",
+        "sha256": "7b2cabb9df8b8af1b5ada9f7deff839779c5101790290fda53943b4e203a2f17"
+      },
+      {
+        "name": "ggml-cpu-icelake.dll",
+        "sha256": "dd27b168d151fcf22f3aa2f9674fcaf71686cbb6c3c02d07767a1e34493f0998"
+      },
+      {
+        "name": "ggml-cpu-sandybridge.dll",
+        "sha256": "781aff429a54f0719d97d119b1caabb37cbee8e05d09ea8b0c5e0aea7c33d277"
+      },
+      {
+        "name": "ggml-cpu-skylakex.dll",
+        "sha256": "0b8a36d310470caac47b4de2c36fa66def7c3f472e518ff186e2166a6b6c9192"
+      },
+      {
+        "name": "ggml-cpu-sse42.dll",
+        "sha256": "125f3fcce8cb34749feb50eb9a7eac9a868938bf7db52e1d21ad6272d3f3328c"
+      },
+      {
+        "name": "ggml-cpu-x64.dll",
+        "sha256": "9b57ea7bd53aa6c90b5aa9ebcce1c410224b4bb53ad585600919679db9887b51"
+      },
+      {
+        "name": "ggml.dll",
+        "sha256": "8e24c47a3fee3f5e69657e34487625cf1c2de3a80d2c35ce868b47c6fec9cd47"
+      },
+      {
+        "name": "libopenblas.dll",
+        "sha256": "4c7fb23e900bd637cf771ad4ae3d1b51112a897385906433f2f1e58fe053ff70"
+      },
+      {
+        "name": "llama.dll",
+        "sha256": "d6ad6d2b96f350db288829df4a42a884b862850fc533f2ecb6d0ef3f3c08a4a8"
+      },
+      {
+        "name": "parakeet.dll",
+        "sha256": "384c3d912340bbda44ccf76e60eed847c96cfcc3ed27df2a89258d35f019ab84"
+      },
+      {
+        "name": "SDL2.dll",
+        "sha256": "de23db1694a3c7a4a735e7ecd3d214b2023cc2267922c6c35d30c7fc7370d677"
+      },
+      {
+        "name": "whisper.dll",
+        "sha256": "f2e773c8094a4d3a6cba281cd21c2328a704a3b8a0db64a374d7904d1ed96f13"
+      }
+    ]
+  }
+}

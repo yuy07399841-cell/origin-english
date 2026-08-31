@@ -1,0 +1,36 @@
+node_modules/
+out/
+dist/
+release/
+coverage/
+.npm-cache/
+.electron-cache/
+.validation/
+artifacts/
+/ecdict.csv
+/ECDICT_LICENSE.txt
+*.log
+
+# Local credentials and user data
+.env
+.env.*
+!.env.example
+**/ai-services.json
+**/state.json
+**/listening-media/
+**/listening-transcripts/
+**/listening-engine/
+**/sentence-audio-cache/
+**/word-audio-cache/
+*.pem
+*.key
+
+# Imported learning media and local release inputs
+*.mp3
+*.wav
+*.m4a
+*.mp4
+
+# Internal product records remain local unless explicitly sanitized for publication
+/项目总览与下一步.md
+/问题与报错日志.md

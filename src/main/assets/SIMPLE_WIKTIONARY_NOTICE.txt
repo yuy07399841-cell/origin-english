@@ -1,0 +1,10 @@
+Origin English includes dictionary text adapted from Simple English Wiktionary.
+
+Source: https://simple.wiktionary.org/
+Dump: https://dumps.wikimedia.org/simplewiktionary/latest/
+License: Creative Commons Attribution-ShareAlike 4.0 International
+License URL: https://creativecommons.org/licenses/by-sa/4.0/
+
+Dictionary text may have been mechanically cleaned and compacted for local lookup.
+Individual pronunciation recordings are fetched on demand from Wikimedia Commons.
+Each recording retains the author and license metadata returned by Wikimedia Commons.

@@ -1,0 +1,43 @@
+appId: com.originenglish.desktop
+productName: 原境英语
+asar: true
+npmRebuild: false
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+extraResources:
+  - from: .validation/listening-spike/ggml-small.en.bin
+    to: transcription/ggml-small.en.bin
+  - from: .validation/listening-spike/whisper-runtime/Release
+    to: transcription/runtime
+    filter:
+      - whisper-cli.exe
+      - '*.dll'
+  - from: resources/transcription-assets.json
+    to: transcription/manifest.json
+  - from: THIRD_PARTY_NOTICES.md
+    to: THIRD_PARTY_NOTICES.md
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  executableName: OriginEnglish
+  icon: build/icon.ico
+  forceCodeSigning: false
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: 原境英语
+  runAfterFinish: false
+  deleteAppDataOnUninstall: false
+  artifactName: Origin-English-Setup-${version}-${arch}.${ext}
+  installerLanguages:
+    - zh_CN
+    - en_US

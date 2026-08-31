@@ -1,0 +1,45 @@
+{
+  "name": "origin-english",
+  "productName": "原境英语",
+  "version": "0.2.0",
+  "private": true,
+  "author": "yuy",
+  "description": "A calm Windows reading workspace for contextual English practice.",
+  "main": "./out/main/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "dictionary:build": "node scripts/build-simple-dictionary.mjs simplewiktionary-latest-pages-articles.xml src/main/assets/simple-wiktionary.data",
+    "chinese-dictionary:build": "node scripts/build-ecdict-chinese.mjs ecdict.csv src/main/assets/simple-wiktionary.data src/main/assets/ecdict-chinese.data",
+    "transcription:prepare": "node scripts/prepare-transcription-assets.mjs",
+    "transcription:check": "node scripts/prepare-transcription-assets.mjs --check",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "npm run typecheck && electron-vite build",
+    "release:win": "npm run transcription:check && npm run build && electron-builder --win nsis --x64"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-markdown": "10.1.0"
+  },
+  "devDependencies": {
+    "@swc/core": "1.16.1",
+    "@types/node": "26.4.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "@vitejs/plugin-react": "5.2.0",
+    "electron": "44.0.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "5.0.0",
+    "typescript": "7.0.2",
+    "vite": "7.3.6",
+    "vitest": "4.1.11"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true,
+    "@swc/core@1.16.1": true
+  }
+}
