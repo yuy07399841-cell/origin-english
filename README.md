@@ -1,8 +1,8 @@
 # 原境英语 · Origin English
 
-原境英语是一款面向 Windows 的本地英语阅读与听力练习应用。它把文章阅读、上下文查词、生词本、原句朗读、本地音频转写和逐句原声练习放在同一个安静、适合长时间使用的桌面界面中。
+原境英语是一款面向 Windows 的本地英语阅读与听力练习应用。它把文章阅读、上下文查词、生词本、原句朗读、本地音频转写和跟随文本练习放在同一个安静、适合长时间使用的桌面界面中。
 
-> Current status: `0.2.0` personal beta. The interface supports Chinese and English.
+> Current status: `0.2.1` personal beta. The interface supports Chinese and English.
 
 ![原境英语阅读首页](docs/images/reading-home.png)
 
@@ -13,7 +13,7 @@
 - 使用本地词典真人录音朗读单词，并保存到紧凑生词本。
 - 使用用户配置的 AI 服务生成更自然的原句朗读和语境说明。
 - 导入 MP3 或 WAV，在本机使用 Small.EN 转写，不上传完整音频。
-- 整段播放、前后10秒、三档速度、逐句原声播放和句子高亮。
+- 主音频连续播放、前后10秒、三档速度、句子跟随高亮和时间定位。
 - 中文／英文界面切换。
 
 ![原境英语听力播放器](docs/images/listening-player.png)
@@ -26,7 +26,7 @@ AI 服务由用户自行配置。当前支持 MiMo，以及用于文本能力的
 
 ## 安装
 
-正式安装包通过 GitHub Releases 提供，不提交进 Git 历史。`0.2.0` 的 Windows x64 安装包约530 MiB，包含本地 Small.EN 模型和 whisper.cpp 运行库。
+正式安装包通过 GitHub Releases 提供，不提交进 Git 历史。`0.2.1` 的 Windows x64 安装包约 530 MiB，包含本地 Small.EN 模型和 whisper.cpp 运行库。
 
 当前个人测试版尚未进行 Windows 代码签名，手动安装时可能出现 SmartScreen 提示。请只从本仓库的正式 Release 下载，并核对发布页提供的 SHA-256。
 

@@ -4,8 +4,7 @@ import {
   findActiveSentenceId,
   formatPlaybackTime,
   getListeningShortcutAction,
-  LISTENING_PLAYBACK_RATES,
-  resolveActiveSentenceId
+  LISTENING_PLAYBACK_RATES
 } from '../src/renderer/src/listening-player'
 
 describe('listening player helpers', () => {
@@ -20,24 +19,15 @@ describe('listening player helpers', () => {
     expect(clampSeekTime(55_000, 10_000, 60_000)).toBe(60_000)
   })
 
-  it('finds the sentence whose playable interval contains the current time', () => {
+  it('finds the most recently started sentence at the current playback time', () => {
     const sentences = [
       { id: 'one', text: 'One.', startMs: 800, endMs: 1600 },
       { id: 'two', text: 'Two.', startMs: 1500, endMs: 2300 }
     ]
     expect(findActiveSentenceId(sentences, 900)).toBe('one')
+    expect(findActiveSentenceId(sentences, 1500)).toBe('two')
     expect(findActiveSentenceId(sentences, 1700)).toBe('two')
     expect(findActiveSentenceId(sentences, 2500)).toBeNull()
-  })
-
-  it('keeps the explicitly played sentence active when padded intervals overlap', () => {
-    const sentences = [
-      { id: 'one', text: 'One.', startMs: 800, endMs: 1600 },
-      { id: 'two', text: 'Two.', startMs: 1500, endMs: 2300 }
-    ]
-    expect(findActiveSentenceId(sentences, 1500)).toBe('one')
-    expect(resolveActiveSentenceId(sentences, 1500, 'two')).toBe('two')
-    expect(resolveActiveSentenceId(sentences, 1700, null)).toBe('two')
   })
 
   it('maps player shortcuts without repeating the space toggle', () => {

@@ -38,23 +38,18 @@ export function findActiveSentenceId(
   sentences: ListeningSentence[],
   currentMilliseconds: number
 ): string | null {
-  return (
-    sentences.find(
-      (sentence) =>
-        currentMilliseconds >= sentence.startMs && currentMilliseconds < sentence.endMs
-    )?.id ?? null
-  )
-}
-
-export function resolveActiveSentenceId(
-  sentences: ListeningSentence[],
-  currentMilliseconds: number,
-  selectedSentenceId: string | null
-): string | null {
-  if (selectedSentenceId && sentences.some((sentence) => sentence.id === selectedSentenceId)) {
-    return selectedSentenceId
+  let activeSentence: ListeningSentence | null = null
+  for (const sentence of sentences) {
+    const containsCurrentTime =
+      currentMilliseconds >= sentence.startMs && currentMilliseconds < sentence.endMs
+    if (
+      containsCurrentTime &&
+      (!activeSentence || sentence.startMs >= activeSentence.startMs)
+    ) {
+      activeSentence = sentence
+    }
   }
-  return findActiveSentenceId(sentences, currentMilliseconds)
+  return activeSentence?.id ?? null
 }
 
 export function getListeningShortcutAction({

@@ -135,7 +135,7 @@ export interface UiCopy {
   playbackSpeed: string
   transcriptionNote: string
   transcriptSelectionHelp: string
-  playSentence: string
+  continueFromSentence: (index: number) => string
   listeningImported: (fileName: string) => string
   transcriptReady: (count: number) => string
   notebookEyebrow: string
@@ -316,11 +316,12 @@ export const UI_COPY: Record<UiLanguage, UiCopy> = {
     audioProgress: 'Audio progress',
     playbackSpeed: 'Playback speed',
     transcriptionNote:
-      'The first transcript prepares the verified Small.EN model locally (about 488 MB). Nothing is uploaded. Sentence boundaries still need your listening check.',
-    transcriptSelectionHelp: 'Select one English word to open its dictionary card on the right.',
-    playSentence: 'Play sentence',
+      'The first transcript prepares the verified Small.EN model locally (about 488 MB). Nothing is uploaded. Playback stays continuous; sentence times guide highlighting and navigation.',
+    transcriptSelectionHelp:
+      'Select one word for its dictionary card, or click a time to continue from there.',
+    continueFromSentence: (index) => `Continue from sentence ${index}`,
     listeningImported: (fileName) => `Imported ${fileName}`,
-    transcriptReady: (count) => `Local transcript ready · ${count} sentences awaiting listening review`,
+    transcriptReady: (count) => `Local transcript ready · ${count} sentences`,
     notebookEyebrow: 'Saved locally',
     notebookTitle: 'Word notebook',
     wordCount: (count) => `${count} ${count === 1 ? 'word' : 'words'}`,
@@ -487,11 +488,11 @@ export const UI_COPY: Record<UiLanguage, UiCopy> = {
     audioProgress: '音频进度',
     playbackSpeed: '播放速度',
     transcriptionNote:
-      '首次转写会在本机准备通过 WER 门禁的 Small.EN 模型（约 488 MB），不会上传音频。句界仍需你逐句试听验收。',
-    transcriptSelectionHelp: '选中一个英语单词，右侧会打开它的词典卡片。',
-    playSentence: '播放第',
+      '首次转写会在本机准备通过 WER 门禁的 Small.EN 模型（约 488 MB），不会上传音频。音频保持连续播放，句子时间只用于高亮与定位。',
+    transcriptSelectionHelp: '选中单词可打开词典卡；点击时间可从该句附近继续播放。',
+    continueFromSentence: (index) => `从第 ${index} 句附近继续播放`,
     listeningImported: (fileName) => `已导入 ${fileName}`,
-    transcriptReady: (count) => `本地转写已完成 · ${count} 句话等待逐句试听`,
+    transcriptReady: (count) => `本地转写已完成 · ${count} 句话`,
     notebookEyebrow: '保存在本机',
     notebookTitle: '生词本',
     wordCount: (count) => `${count} 个单词`,

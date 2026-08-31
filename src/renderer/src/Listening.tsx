@@ -9,10 +9,10 @@ import { getDefinitionRequestFromSelection } from './selection'
 import type { UiCopy } from './i18n'
 import {
   clampSeekTime,
+  findActiveSentenceId,
   formatPlaybackTime,
   getListeningShortcutAction,
   LISTENING_PLAYBACK_RATES,
-  resolveActiveSentenceId,
   type ListeningPlaybackRate
 } from './listening-player'
 
@@ -132,8 +132,6 @@ export function ListeningWorkspace({
 }: ListeningWorkspaceProps): React.JSX.Element {
   const audioRef = useRef<HTMLAudioElement>(null)
   const transcriptRef = useRef<HTMLElement>(null)
-  const sentenceEndRef = useRef<number | null>(null)
-  const animationFrameRef = useRef<number | null>(null)
   const [audioSource, setAudioSource] = useState<string | null>(null)
   const [audioLoading, setAudioLoading] = useState(true)
   const [playing, setPlaying] = useState(false)
@@ -141,11 +139,10 @@ export function ListeningWorkspace({
   const [durationMs, setDurationMs] = useState(item.transcript?.durationMs ?? 0)
   const [rate, setRate] = useState<ListeningPlaybackRate>(1)
   const [transcriptVisible, setTranscriptVisible] = useState(false)
-  const [playedSentenceId, setPlayedSentenceId] = useState<string | null>(null)
   const sentences = item.transcript?.sentences ?? []
   const activeSentenceId = useMemo(
-    () => resolveActiveSentenceId(sentences, currentMs, playedSentenceId),
-    [currentMs, playedSentenceId, sentences]
+    () => findActiveSentenceId(sentences, currentMs),
+    [currentMs, sentences]
   )
 
   useEffect(() => {
@@ -173,64 +170,18 @@ export function ListeningWorkspace({
     if (audio) audio.playbackRate = rate
   }, [rate])
 
-  useEffect(
-    () => () => {
-      if (animationFrameRef.current !== null) {
-        window.cancelAnimationFrame(animationFrameRef.current)
-        animationFrameRef.current = null
-      }
-      audioRef.current?.pause()
-    },
-    []
-  )
-
-  const cancelSentenceMonitor = (): void => {
-    if (animationFrameRef.current !== null) {
-      window.cancelAnimationFrame(animationFrameRef.current)
-      animationFrameRef.current = null
-    }
-  }
-
-  const leaveSentencePlayback = (): void => {
-    cancelSentenceMonitor()
-    sentenceEndRef.current = null
-    setPlayedSentenceId(null)
-  }
-
-  const monitorSentenceEnd = (): void => {
-    const audio = audioRef.current
-    const endMs = sentenceEndRef.current
-    if (!audio || endMs === null || audio.paused) {
-      animationFrameRef.current = null
-      return
-    }
-    if (audio.currentTime * 1000 >= endMs - 12) {
-      audio.pause()
-      audio.currentTime = endMs / 1000
-      sentenceEndRef.current = null
-      animationFrameRef.current = null
-      setCurrentMs(endMs)
-      return
-    }
-    animationFrameRef.current = window.requestAnimationFrame(monitorSentenceEnd)
-  }
+  useEffect(() => () => audioRef.current?.pause(), [])
 
   const togglePlayback = async (): Promise<void> => {
     const audio = audioRef.current
     if (!audio || !audioSource) return
     if (audio.paused) {
-      if (sentenceEndRef.current === null) setPlayedSentenceId(null)
       try {
         await audio.play()
-        if (sentenceEndRef.current !== null) {
-          cancelSentenceMonitor()
-          animationFrameRef.current = window.requestAnimationFrame(monitorSentenceEnd)
-        }
       } catch (error) {
         onError(error)
       }
     } else {
-      cancelSentenceMonitor()
       audio.pause()
     }
   }
@@ -238,26 +189,19 @@ export function ListeningWorkspace({
   const seekBy = (deltaMs: number): void => {
     const audio = audioRef.current
     if (!audio) return
-    leaveSentencePlayback()
     const next = clampSeekTime(audio.currentTime * 1000, deltaMs, durationMs)
     audio.currentTime = next / 1000
     setCurrentMs(next)
   }
 
-  const playSentence = async (sentence: ListeningSentence): Promise<void> => {
+  const continueFromSentence = async (sentence: ListeningSentence): Promise<void> => {
     const audio = audioRef.current
     if (!audio || !audioSource) return
-    cancelSentenceMonitor()
-    sentenceEndRef.current = sentence.endMs
-    setPlayedSentenceId(sentence.id)
     audio.currentTime = sentence.startMs / 1000
     setCurrentMs(sentence.startMs)
     try {
       await audio.play()
-      animationFrameRef.current = window.requestAnimationFrame(monitorSentenceEnd)
     } catch (error) {
-      sentenceEndRef.current = null
-      setPlayedSentenceId(null)
       onError(error)
     }
   }
@@ -329,10 +273,7 @@ export function ListeningWorkspace({
               onTimeUpdate={(event) => setCurrentMs(event.currentTarget.currentTime * 1000)}
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
-              onEnded={() => {
-                setPlaying(false)
-                leaveSentencePlayback()
-              }}
+              onEnded={() => setPlaying(false)}
             />
             <div className="player-controls">
               <button
@@ -375,7 +316,6 @@ export function ListeningWorkspace({
                 onChange={(event) => {
                   const audio = audioRef.current
                   if (!audio) return
-                  leaveSentencePlayback()
                   const next = Number(event.target.value)
                   audio.currentTime = next / 1000
                   setCurrentMs(next)
@@ -437,13 +377,13 @@ export function ListeningWorkspace({
               >
                 <button
                   type="button"
-                  className="sentence-play-button"
-                  aria-label={`${copy.playSentence} ${index + 1}`}
-                  onClick={() => void playSentence(sentence)}
+                  className="sentence-time-button"
+                  aria-label={copy.continueFromSentence(index + 1)}
+                  title={copy.continueFromSentence(index + 1)}
+                  onClick={() => void continueFromSentence(sentence)}
                 >
-                  ▶
+                  <time>{formatPlaybackTime(sentence.startMs)}</time>
                 </button>
-                <time>{formatPlaybackTime(sentence.startMs)}</time>
                 <p>{sentence.text}</p>
               </article>
             ))}

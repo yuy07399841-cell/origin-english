@@ -218,11 +218,14 @@ try {
         playbackProbe.push({ currentTime: this.currentTime, playbackRate: this.playbackRate });
         return Promise.resolve();
       };
-      sentenceRows[0].querySelector('.sentence-play-button').click();
-      await waitFor(() => playbackProbe.length === 1, 'Sentence play did not target the original audio');
+      if (document.querySelector('.sentence-play-button')) {
+        throw new Error('The removed sentence play control is still rendered');
+      }
+      sentenceRows[0].querySelector('.sentence-time-button').click();
+      await waitFor(() => playbackProbe.length === 1, 'Time navigation did not continue the original audio');
       const expectedStart = transcript.sentences[0].startMs / 1000;
       if (Math.abs(playbackProbe[0].currentTime - expectedStart) > 0.05) {
-        throw new Error('Sentence play did not seek to the stored start time');
+        throw new Error('Time navigation did not seek to the stored start time');
       }
 
       const sentenceText = sentenceRows[0].querySelector('p');
@@ -260,7 +263,7 @@ try {
         transcriptSentenceCount: transcript.sentences.length,
         transcriptText: transcript.sentences.map((sentence) => sentence.text).join(' '),
         firstSentence: transcript.sentences[0],
-        sentencePlayback: playbackProbe[0],
+        continuousPlaybackFromTime: playbackProbe[0],
         selectedWord: definitionPanel.querySelector('.word-line h2')?.textContent?.trim(),
         savedWordCount: finalState.savedWords.length,
         listeningCardHasSentenceTts: Boolean(definitionPanel.querySelector('.panel-heading .icon-button')),

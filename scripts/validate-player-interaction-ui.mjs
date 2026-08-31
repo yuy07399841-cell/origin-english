@@ -308,12 +308,17 @@ try {
       }
       if (playToggle.getAttribute('aria-label') !== '播放') throw new Error('Initial play icon state is wrong');
 
-      const secondButton = rows[1].querySelector('.sentence-play-button');
+      if (transcriptPanel.querySelector('.sentence-play-button')) {
+        throw new Error('The removed sentence play control is still rendered');
+      }
+      const timeButtons = [...transcriptPanel.querySelectorAll('.sentence-time-button')];
+      if (timeButtons.length !== rows.length) throw new Error('Each sentence needs one time navigation control');
+      const secondButton = timeButtons[1];
       secondButton.click();
       secondButton.focus();
       await waitFor(
         () => rows[1].classList.contains('active') && !rows[0].classList.contains('active'),
-        'Clicked overlapping sentence was not highlighted immediately'
+        'Time navigation did not highlight the most recently started sentence'
       );
       await waitFor(
         () => playToggle.getAttribute('aria-label') === '暂停',
@@ -323,16 +328,23 @@ try {
       const firstSpace = press(secondButton, ' ', 'Space');
       await waitFor(() => playToggle.getAttribute('aria-label') === '播放', 'Space did not pause playback');
       if (!firstSpace.defaultPrevented || firstSpace.allowed) throw new Error('Space default action was not prevented');
-      if (!rows[1].classList.contains('active')) throw new Error('Paused sentence lost its selected highlight');
+      if (!rows[1].classList.contains('active')) throw new Error('Paused timeline highlight changed unexpectedly');
 
       const secondSpace = press(secondButton, ' ', 'Space');
       await waitFor(() => playToggle.getAttribute('aria-label') === '暂停', 'Space did not resume playback');
       if (!secondSpace.defaultPrevented || secondSpace.allowed) throw new Error('Resume space was not consumed');
-      if (!rows[1].classList.contains('active')) throw new Error('Resumed sentence lost its selected highlight');
+      if (!rows[1].classList.contains('active')) throw new Error('Resumed timeline highlight changed unexpectedly');
 
       const repeatedSpace = press(secondButton, ' ', 'Space', true);
       if (repeatedSpace.defaultPrevented || playToggle.getAttribute('aria-label') !== '暂停') {
         throw new Error('Repeated space toggled playback');
+      }
+
+      audio.currentTime = 4.2;
+      audio.dispatchEvent(new Event('timeupdate'));
+      await new Promise((resolveWait) => setTimeout(resolveWait, 75));
+      if (playToggle.getAttribute('aria-label') !== '暂停' || fakePaused) {
+        throw new Error('Main audio stopped at a sentence end instead of continuing');
       }
 
       const left = press(secondButton, 'ArrowLeft', 'ArrowLeft');
@@ -359,7 +371,8 @@ try {
       const unitRect = countUnit.getBoundingClientRect();
       return JSON.stringify({
         sentenceCount: rows.length,
-        activeAfterOverlappingClick: 2,
+        activeAfterTimeNavigation: 2,
+        continuousPastSentenceEnd: !fakePaused,
         shortcutSpacePrevented: firstSpace.defaultPrevented,
         repeatedSpaceIgnored: !repeatedSpace.defaultPrevented,
         leftArrowCurrentTime: leftArrowTime,

@@ -2212,9 +2212,9 @@ button:focus-visible {
 
 .sentence-row {
   display: grid;
-  grid-template-columns: 36px 44px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
   align-items: start;
-  gap: 11px;
+  gap: 15px;
   padding: 16px 24px;
   border-bottom: 1px solid var(--line);
   transition: background 120ms ease;
@@ -2228,24 +2228,27 @@ button:focus-visible {
   background: #eef4ef;
 }
 
-.sentence-play-button {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  padding: 0 0 0 2px;
+.sentence-time-button {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 6px;
   border: 0;
-  border-radius: 11px;
-  color: #456052;
-  background: #e9f0ea;
+  border-radius: 10px;
+  color: #707870;
+  background: transparent;
   cursor: pointer;
-  font-size: 10px;
+  transition: color 120ms ease, background 120ms ease;
 }
 
-.sentence-row time {
-  padding-top: 9px;
-  color: #979a92;
+.sentence-time-button:hover,
+.sentence-time-button:focus-visible {
+  color: #355346;
+  background: #e7efe9;
+}
+
+.sentence-time-button time {
   font-size: 10px;
+  font-variant-numeric: tabular-nums;
 }
 
 .sentence-row p {
@@ -2451,12 +2454,8 @@ button:focus-visible {
   }
 
   .sentence-row {
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: 56px minmax(0, 1fr);
     padding: 14px 16px;
-  }
-
-  .sentence-row time {
-    display: none;
   }
 
   .article-delete-button {
