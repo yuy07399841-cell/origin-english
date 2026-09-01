@@ -51,6 +51,7 @@ export interface DefinitionResult {
   partOfSpeech: string
   definition: string
   usage: string
+  contextualChineseHint: ChineseHintResult | null
   source: 'simple-wiktionary' | 'preview' | 'mimo' | 'openai-compatible'
   notice: string
   phonetic: string | null
@@ -193,6 +194,7 @@ export interface OriginEnglishApi {
   importMarkdown: () => Promise<Article | null>
   deleteArticle: (id: string) => Promise<AppState>
   importListening: () => Promise<ListeningItem | null>
+  deleteListening: (id: string) => Promise<AppState>
   getListeningAudio: (id: string) => Promise<ListeningAudioResult>
   transcribeListening: (id: string) => Promise<AppState>
   loadState: () => Promise<AppState>

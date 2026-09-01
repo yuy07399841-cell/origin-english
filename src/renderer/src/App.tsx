@@ -512,6 +512,8 @@ export default function App(): React.JSX.Element {
   const [transcribingListeningId, setTranscribingListeningId] = useState<string | null>(null)
   const [pendingArticleDelete, setPendingArticleDelete] = useState<Article | null>(null)
   const [deletingArticle, setDeletingArticle] = useState(false)
+  const [pendingListeningDelete, setPendingListeningDelete] = useState<ListeningItem | null>(null)
+  const [deletingListening, setDeletingListening] = useState(false)
   const [state, setState] = useState<AppState | null>(null)
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus | null>(null)
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false)
@@ -793,6 +795,29 @@ export default function App(): React.JSX.Element {
     }
   }
 
+  const deleteListening = async (): Promise<void> => {
+    if (!pendingListeningDelete || deletingListening) return
+    const item = pendingListeningDelete
+    setDeletingListening(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const updated = await window.originEnglish.deleteListening(item.id)
+      setState(updated)
+      if (openListeningId === item.id) {
+        clearDefinitionSelection()
+        setOpenListeningId(null)
+      }
+      setPendingListeningDelete(null)
+      setNotice(copy.listeningDeleted(item.title))
+    } catch (deleteError) {
+      setPendingListeningDelete(null)
+      setError(errorMessage(deleteError, copy))
+    } finally {
+      setDeletingListening(false)
+    }
+  }
+
   const selectWord = async (nextRequest: DefinitionRequest): Promise<void> => {
     const sequence = lookupSequence.current + 1
     lookupSequence.current = sequence
@@ -808,6 +833,7 @@ export default function App(): React.JSX.Element {
       const result = await window.originEnglish.defineWord(nextRequest)
       if (lookupSequence.current !== sequence) return
       setDefinition(result)
+      setChineseHint(result.contextualChineseHint)
       setLoadingDefinition(false)
 
       const [recorded, updatedRuntimeStatus] = await Promise.allSettled([
@@ -857,6 +883,7 @@ export default function App(): React.JSX.Element {
     setChineseHintVisible(false)
     try {
       const refined = await window.originEnglish.refineDefinition(request)
+      setChineseHint(refined.contextualChineseHint)
       setDefinition({
         ...refined,
         phonetic: definition.phonetic,
@@ -1221,6 +1248,8 @@ export default function App(): React.JSX.Element {
           language={state.uiLanguage}
           copy={copy}
           onOpen={openListeningItem}
+          onRequestDelete={setPendingListeningDelete}
+          transcribingItemId={transcribingListeningId}
         />
       ) : (
         <Notebook
@@ -1266,6 +1295,43 @@ export default function App(): React.JSX.Element {
                 onClick={() => void deleteArticle()}
               >
                 {copy.deleteArticle}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {pendingListeningDelete ? (
+        <div className="confirm-backdrop" role="presentation">
+          <section
+            className="confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-listening-title"
+            aria-describedby="delete-listening-description"
+          >
+            <span className="eyebrow">{copy.listeningLibraryTitle}</span>
+            <h2 id="delete-listening-title">{copy.deleteListeningTitle}</h2>
+            <p id="delete-listening-description">
+              {copy.confirmDeleteListening(pendingListeningDelete.title)}
+            </p>
+            <div className="confirm-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                autoFocus
+                disabled={deletingListening}
+                onClick={() => setPendingListeningDelete(null)}
+              >
+                {copy.cancelDeleteListening}
+              </button>
+              <button
+                type="button"
+                className="confirm-delete-button"
+                disabled={deletingListening}
+                onClick={() => void deleteListening()}
+              >
+                {copy.deleteListening}
               </button>
             </div>
           </section>

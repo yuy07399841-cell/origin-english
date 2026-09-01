@@ -57,6 +57,7 @@ describe('definition providers', () => {
       expect(body.messages[1].content).toBe(
         JSON.stringify({ word: 'context', sentence: 'Context makes the idea clear.' })
       )
+      expect(body.messages[0].content).toContain('chineseDefinition')
       expect(JSON.stringify(body)).not.toContain('full article')
       expect(body.model).toBe('mimo-v2.5')
       expect(body.max_completion_tokens).toBe(256)
@@ -70,6 +71,7 @@ describe('definition providers', () => {
                 content: JSON.stringify({
                   partOfSpeech: 'noun',
                   definition: 'surrounding information that makes meaning clear',
+                  chineseDefinition: '帮助理解含义的背景信息',
                   usage: 'Use context to choose the intended sense.'
                 })
               }
@@ -95,12 +97,18 @@ describe('definition providers', () => {
       expect(fetchMock).toHaveBeenCalledOnce()
       expect(result.source).toBe('mimo')
       expect(result.partOfSpeech).toBe('noun')
+      expect(result.contextualChineseHint).toEqual({
+        hint: '帮助理解含义的背景信息',
+        source: 'mimo',
+        sourceUrl: null,
+        contextual: true
+      })
     } finally {
       await rm(directory, { recursive: true, force: true })
     }
   })
 
-  it('only requests a Chinese hint after the explicit method is called', async () => {
+  it('keeps an explicit Chinese fallback for local results that lack one', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'origin-english-provider-'))
     const fetchMock = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as {

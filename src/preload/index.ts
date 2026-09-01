@@ -5,6 +5,7 @@ const api: OriginEnglishApi = {
   importMarkdown: () => ipcRenderer.invoke('article:import'),
   deleteArticle: (id) => ipcRenderer.invoke('article:delete', id),
   importListening: () => ipcRenderer.invoke('listening:import'),
+  deleteListening: (id) => ipcRenderer.invoke('listening:delete', id),
   getListeningAudio: (id) => ipcRenderer.invoke('listening:audio', id),
   transcribeListening: (id) => ipcRenderer.invoke('listening:transcribe', id),
   loadState: () => ipcRenderer.invoke('state:load'),

@@ -117,6 +117,7 @@ describe('local Simple English dictionary', () => {
       partOfSpeech: 'word',
       definition: 'fallback meaning',
       usage: '',
+      contextualChineseHint: null,
       source: 'preview' as const,
       notice: 'fallback',
       phonetic: null,

@@ -5,7 +5,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   importListeningFile,
   loadListeningAudio,
-  MAX_LISTENING_AUDIO_BYTES
+  MAX_LISTENING_AUDIO_BYTES,
+  stageListeningFileDeletion
 } from '../src/main/listening-media'
 
 const temporaryDirectories: string[] = []
@@ -87,5 +88,43 @@ describe('listening media import', () => {
     await expect(loadListeningAudio(imported.item, join(directory, 'media'))).rejects.toThrow(
       'does not match'
     )
+  })
+
+  it('stages a managed audio deletion so it can be committed or rolled back', async () => {
+    const directory = await createDirectory()
+    const sourcePath = join(directory, 'sample.mp3')
+    const source = Buffer.from('managed audio')
+    await writeFile(sourcePath, source)
+    const imported = await importListeningFile(sourcePath, join(directory, 'media'), {
+      id: 'abc-789'
+    })
+
+    const firstDeletion = await stageListeningFileDeletion(imported.item, join(directory, 'media'))
+    await expect(readFile(imported.storedPath)).rejects.toMatchObject({ code: 'ENOENT' })
+    await firstDeletion.rollback()
+    await expect(readFile(imported.storedPath)).resolves.toEqual(source)
+
+    const secondDeletion = await stageListeningFileDeletion(imported.item, join(directory, 'media'))
+    await secondDeletion.commit()
+    await expect(readFile(imported.storedPath)).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('rejects deletion paths that are not managed listening filenames', async () => {
+    const directory = await createDirectory()
+    await expect(
+      stageListeningFileDeletion(
+        {
+          id: 'unsafe',
+          title: 'Unsafe',
+          fileName: 'unsafe.mp3',
+          storedFileName: '../unsafe.mp3',
+          mimeType: 'audio/mpeg',
+          bytes: 1,
+          importedAt: '2026-09-01T00:00:00.000Z',
+          transcript: null
+        },
+        join(directory, 'media')
+      )
+    ).rejects.toThrow('reference is invalid')
   })
 })

@@ -49,6 +49,7 @@ export class PreviewDefinitionProvider implements DefinitionProvider {
     return {
       word: request.word,
       ...preview,
+      contextualChineseHint: null,
       source: 'preview',
       notice: 'No local dictionary entry · No remote AI service was called',
       phonetic: null,

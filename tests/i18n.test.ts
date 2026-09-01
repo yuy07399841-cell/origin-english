@@ -24,8 +24,15 @@ describe('interface translations', () => {
     expect(UI_COPY.zh.continueFromSentence(2)).toBe('从第 2 句附近继续播放')
     expect(UI_COPY.en.originalSentence).toBe('Original sentence')
     expect(UI_COPY.zh.originalSentence).toBe('原句')
+    expect(UI_COPY.en.simpleDictionaryBadge).toBe('English definition')
+    expect(UI_COPY.zh.simpleDictionaryBadge).toBe('英文释义')
+    expect(UI_COPY.en.showChineseHint).toBe('Show Chinese meaning')
+    expect(UI_COPY.zh.showChineseHint).toBe('显示中文释义')
+    expect(UI_COPY.zh.hideChineseHint).toBe('隐藏中文释义')
     expect(UI_COPY.en.confirmDeleteArticle('A quiet article')).toContain('Saved words')
     expect(UI_COPY.zh.confirmDeleteArticle('一篇文章')).toContain('生词本')
+    expect(UI_COPY.en.confirmDeleteListening('A quiet recording')).toContain('original source file')
+    expect(UI_COPY.zh.confirmDeleteListening('一段音频')).toContain('源文件')
     expect(UI_COPY.en.headwordAudioAttribution('notice', 'Speaker', 'CC0')).toContain(
       'headword “notice”'
     )

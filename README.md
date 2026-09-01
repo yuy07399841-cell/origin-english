@@ -2,17 +2,17 @@
 
 原境英语是一款面向 Windows 的本地英语阅读与听力练习应用。它把文章阅读、上下文查词、生词本、原句朗读、本地音频转写和跟随文本练习放在同一个安静、适合长时间使用的桌面界面中。
 
-> Current status: `0.2.1` personal beta. The interface supports Chinese and English.
+> Current source and local desktop version: `0.2.2`. Latest public installer: `0.2.1`. The interface supports Chinese and English.
 
 ![原境英语阅读首页](docs/images/reading-home.png)
 
 ## 主要功能
 
 - 导入并保存 UTF-8 Markdown 文章，在专注阅读页选择单词查义。
-- 默认显示简明英英释义，中文参考按需展开。
+- 默认显示简明英英释义，中文释义按需展开。
 - 使用本地词典真人录音朗读单词，并保存到紧凑生词本。
 - 使用用户配置的 AI 服务生成更自然的原句朗读和语境说明。
-- 导入 MP3 或 WAV，在本机使用 Small.EN 转写，不上传完整音频。
+- 导入 MP3 或 WAV，在本机使用 Small.EN 转写；可删除应用托管的音频副本和转写，不触碰原始源文件。
 - 主音频连续播放、前后10秒、三档速度、句子跟随高亮和时间定位。
 - 中文／英文界面切换。
 

@@ -95,6 +95,7 @@ export class SimpleEnglishDictionary {
       partOfSpeech: primary.partOfSpeech,
       definition: primary.m,
       usage: primary.e ?? '',
+      contextualChineseHint: null,
       source: 'simple-wiktionary',
       notice: 'Local dictionary · MiMo was not called',
       phonetic: displayEntry.i ?? definitionEntry.i ?? null,

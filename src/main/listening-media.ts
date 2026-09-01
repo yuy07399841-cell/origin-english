@@ -5,6 +5,11 @@ import type { ListeningAudioResult, ListeningItem } from '../shared/types'
 
 export const MAX_LISTENING_AUDIO_BYTES = 100 * 1024 * 1024
 
+export interface StagedListeningFileDeletion {
+  commit: () => Promise<void>
+  rollback: () => Promise<void>
+}
+
 const AUDIO_FORMATS = {
   '.mp3': 'audio/mpeg',
   '.wav': 'audio/wav'
@@ -91,5 +96,33 @@ export async function loadListeningAudio(
     dataUrl: `data:${item.mimeType};base64,${content.toString('base64')}`,
     mimeType: item.mimeType,
     bytes: content.length
+  }
+}
+
+export async function stageListeningFileDeletion(
+  item: ListeningItem,
+  mediaDirectory: string
+): Promise<StagedListeningFileDeletion> {
+  if (!isManagedListeningFileName(item.storedFileName)) {
+    throw new Error('The saved audio reference is invalid.')
+  }
+
+  const storedPath = join(mediaDirectory, item.storedFileName)
+  const stagedPath = `${storedPath}.${process.pid}-${randomUUID()}.delete`
+  try {
+    await rename(storedPath, stagedPath)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return {
+        commit: async () => undefined,
+        rollback: async () => undefined
+      }
+    }
+    throw error
+  }
+
+  return {
+    commit: async () => rm(stagedPath, { force: true }),
+    rollback: async () => rename(stagedPath, storedPath)
   }
 }

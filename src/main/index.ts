@@ -47,7 +47,12 @@ import {
 import { WikimediaWordAudioService } from './word-audio'
 import { ORIGIN_ENGLISH_APP_ID, resolveOriginEnglishUserDataPath } from './app-paths'
 import { deleteArticleFromState } from './article-state'
-import { importListeningFile, loadListeningAudio } from './listening-media'
+import {
+  importListeningFile,
+  loadListeningAudio,
+  stageListeningFileDeletion
+} from './listening-media'
+import { deleteListeningItemFromState } from './listening-state'
 import { LocalListeningTranscriptionService } from './listening-transcription'
 
 const MAX_MARKDOWN_BYTES = 5 * 1024 * 1024
@@ -184,6 +189,34 @@ function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('listening:import', importListening)
+
+  ipcMain.handle('listening:delete', async (event, rawId): Promise<AppState> => {
+    assertTrustedSender(event)
+    const id = validateId(rawId)
+    const current = await store.read()
+    const item = current.listeningItems.find((candidate) => candidate.id === id)
+    if (!item) return current
+    if (listeningTranscriptionService?.isTranscribing(id)) {
+      throw new Error(
+        current.uiLanguage === 'zh'
+          ? '这个音频正在转写，请等待转写完成后再删除。'
+          : 'This audio is being transcribed. Wait for transcription to finish before deleting it.'
+      )
+    }
+
+    const stagedFile = await stageListeningFileDeletion(item, listeningMediaDirectory)
+    let updated: AppState
+    try {
+      updated = await store.update((latest) => deleteListeningItemFromState(latest, id))
+    } catch (error) {
+      await stagedFile.rollback()
+      throw error
+    }
+    await stagedFile.commit().catch((error: unknown) => {
+      console.warn('Could not remove a staged listening media file.', error)
+    })
+    return updated
+  })
 
   ipcMain.handle('listening:audio', async (event, rawId): Promise<ListeningAudioResult> => {
     assertTrustedSender(event)

@@ -23,14 +23,18 @@ function parseModelOutput(content: string, word: string): DefinitionResult {
   const parsed = JSON.parse(normalized) as Record<string, unknown>
   const partOfSpeech = parsed.partOfSpeech
   const definition = parsed.definition
+  const chineseDefinition = parsed.chineseDefinition
   const usage = parsed.usage
 
   if (
     typeof partOfSpeech !== 'string' ||
     typeof definition !== 'string' ||
+    typeof chineseDefinition !== 'string' ||
     typeof usage !== 'string' ||
     !partOfSpeech.trim() ||
     !definition.trim() ||
+    !chineseDefinition.trim() ||
+    chineseDefinition.trim().length > 80 ||
     !usage.trim()
   ) {
     throw new Error('MiMo returned an invalid definition payload.')
@@ -41,6 +45,12 @@ function parseModelOutput(content: string, word: string): DefinitionResult {
     partOfSpeech: partOfSpeech.trim(),
     definition: definition.trim(),
     usage: usage.trim(),
+    contextualChineseHint: {
+      hint: chineseDefinition.trim(),
+      source: 'mimo',
+      sourceUrl: null,
+      contextual: true
+    },
     source: 'mimo',
     notice: 'Context sent: selected word and current sentence only',
     phonetic: null,
@@ -141,7 +151,7 @@ export class MiMoDefinitionProvider implements DefinitionProvider {
 
   async define(request: DefinitionRequest): Promise<DefinitionResult> {
     const parsed = await this.completeJson(
-      'Choose the exact sense of the selected English word in the sentence. Write for a beginning English learner. The definition must use common words and no more than 18 words. Return JSON only with non-empty string fields partOfSpeech, definition, and usage. Usage must be one short, natural example or pattern and must not repeat the definition.',
+      'Choose the exact sense of the selected English word in the sentence. Write for a beginning English learner. The English definition must use common words and no more than 18 words. Also give one short natural Simplified Chinese meaning for that exact sense; do not translate the whole sentence. Return JSON only with non-empty string fields partOfSpeech, definition, chineseDefinition, and usage. Usage must be one short, natural example or pattern and must not repeat the definition.',
       { word: request.word, sentence: request.sentence },
       256
     )

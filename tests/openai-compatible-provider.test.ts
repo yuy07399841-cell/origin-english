@@ -19,6 +19,7 @@ describe('OpenAI-compatible contextual definition provider', () => {
       expect(body.messages[1].content).toBe(
         JSON.stringify({ word: 'context', sentence: 'Context makes the idea clear.' })
       )
+      expect(body.messages[0].content).toContain('chineseDefinition')
       expect(JSON.stringify(body)).not.toContain('full article')
       expect(body.max_tokens).toBe(256)
       expect(body.stream).toBe(false)
@@ -30,6 +31,7 @@ describe('OpenAI-compatible contextual definition provider', () => {
                 content: JSON.stringify({
                   partOfSpeech: 'noun',
                   definition: 'surrounding information that helps make meaning clear',
+                  chineseDefinition: '帮助理解含义的背景信息',
                   usage: 'Use context to choose the intended sense.'
                 })
               }
@@ -51,12 +53,18 @@ describe('OpenAI-compatible contextual definition provider', () => {
     ).resolves.toMatchObject({
       word: 'context',
       partOfSpeech: 'noun',
-      source: 'openai-compatible'
+      source: 'openai-compatible',
+      contextualChineseHint: {
+        hint: '帮助理解含义的背景信息',
+        source: 'openai-compatible',
+        sourceUrl: null,
+        contextual: true
+      }
     })
     expect(fetchMock).toHaveBeenCalledOnce()
   })
 
-  it('does not request a Chinese hint until the explicit method is used', async () => {
+  it('keeps an explicit Chinese fallback for local results that lack one', async () => {
     const fetchMock = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as {
         messages: Array<{ role: string; content: string }>

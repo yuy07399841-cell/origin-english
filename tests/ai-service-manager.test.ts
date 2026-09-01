@@ -145,4 +145,55 @@ describe('AI service runtime switching', () => {
     })
     expect(fetchMock).not.toHaveBeenCalled()
   })
+
+  it('returns English and Chinese contextual meanings in one text AI request', async () => {
+    const fetchMock = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as {
+        messages: Array<{ role: string; content: string }>
+      }
+      expect(body.messages[1].content).toBe(
+        JSON.stringify({ word: 'notice', sentence: 'I noticed a small change.' })
+      )
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  partOfSpeech: 'verb',
+                  definition: 'to become aware of something',
+                  chineseDefinition: '注意到；察觉到',
+                  usage: 'notice a small change'
+                })
+              }
+            }
+          ]
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    }) as typeof fetch
+    const manager = await createManager(fetchMock)
+    await manager.configure({
+      textProvider: 'openai-compatible',
+      textBaseUrl: 'https://models.example.test/v1',
+      textModel: 'learner-model',
+      textApiKey: 'text-manager-test-key',
+      sentenceAudioEnabled: false,
+      sentenceAudioCredentialMode: 'separate',
+      sentenceAudioApiKey: ''
+    })
+
+    await expect(
+      manager.refine({ word: 'notice', sentence: 'I noticed a small change.' })
+    ).resolves.toMatchObject({
+      definition: 'to become aware of something',
+      hasChineseReference: true,
+      contextualChineseHint: {
+        hint: '注意到；察觉到',
+        source: 'openai-compatible',
+        contextual: true
+      }
+    })
+    expect(fetchMock).toHaveBeenCalledOnce()
+  })
 })

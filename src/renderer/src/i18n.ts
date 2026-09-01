@@ -113,6 +113,10 @@ export interface UiCopy {
   audioCount: (count: number) => string
   audioListLabel: string
   openListening: string
+  deleteListening: string
+  deleteListeningTitle: string
+  confirmDeleteListening: (title: string) => string
+  cancelDeleteListening: string
   notTranscribed: string
   emptyListeningTitle: string
   emptyListeningBody: string
@@ -138,6 +142,7 @@ export interface UiCopy {
   continueFromSentence: (index: number) => string
   listeningImported: (fileName: string) => string
   transcriptReady: (count: number) => string
+  listeningDeleted: (title: string) => string
   notebookEyebrow: string
   notebookTitle: string
   wordCount: (count: number) => string
@@ -248,7 +253,7 @@ export const UI_COPY: Record<UiLanguage, UiCopy> = {
     listen: 'Listen',
     preparingDefinition: 'Preparing the meaning in context…',
     localPreviewBadge: 'No local entry · no text AI called',
-    simpleDictionaryBadge: 'Simple English Wiktionary · local',
+    simpleDictionaryBadge: 'English definition',
     mimoLiveBadge: 'Live contextual meaning · text AI',
     sentenceSpeed: 'Sentence speed',
     normalSentenceSpeed: 'Normal · 1.0×',
@@ -261,11 +266,11 @@ export const UI_COPY: Record<UiLanguage, UiCopy> = {
     noRecordedPronunciation: 'No dictionary recording is available for this word.',
     refineWithContext: 'Use the sentence to refine this meaning',
     refiningContext: 'Checking this sense with text AI…',
-    showChineseHint: 'Show Chinese reference',
-    hideChineseHint: 'Hide Chinese reference',
-    preparingChineseHint: 'Preparing the Chinese reference…',
-    localChineseReferenceLabel: 'Local Chinese reference · ECDICT',
-    mimoChineseHintLabel: 'Contextual Chinese hint · text AI',
+    showChineseHint: 'Show Chinese meaning',
+    hideChineseHint: 'Hide Chinese meaning',
+    preparingChineseHint: 'Preparing the Chinese meaning…',
+    localChineseReferenceLabel: 'Chinese meaning · local ECDICT',
+    mimoChineseHintLabel: 'Chinese meaning in context · text AI',
     audioAttribution: (artist, license) => `Recording: ${artist} · ${license}`,
     headwordAudioAttribution: (sourceWord, artist, license) =>
       `No recording for this form; playing the headword “${sourceWord}”. Recording: ${artist} · ${license}`,
@@ -295,6 +300,11 @@ export const UI_COPY: Record<UiLanguage, UiCopy> = {
     audioCount: (count) => `${count} ${count === 1 ? 'audio file' : 'audio files'}`,
     audioListLabel: 'Imported listening audio list',
     openListening: 'Open audio',
+    deleteListening: 'Delete',
+    deleteListeningTitle: 'Delete this audio?',
+    confirmDeleteListening: (title) =>
+      `The imported copy of “${title}” and its transcript will be deleted from this app and cannot be restored. Your original source file, saved words and lookup history will stay.`,
+    cancelDeleteListening: 'Keep audio',
     notTranscribed: 'Transcript not created',
     emptyListeningTitle: 'Bring your first English audio here.',
     emptyListeningBody: 'Import an MP3 or WAV file. Your audio and transcript stay on this computer.',
@@ -322,6 +332,7 @@ export const UI_COPY: Record<UiLanguage, UiCopy> = {
     continueFromSentence: (index) => `Continue from sentence ${index}`,
     listeningImported: (fileName) => `Imported ${fileName}`,
     transcriptReady: (count) => `Local transcript ready · ${count} sentences`,
+    listeningDeleted: (title) => `Deleted “${title}”`,
     notebookEyebrow: 'Saved locally',
     notebookTitle: 'Word notebook',
     wordCount: (count) => `${count} ${count === 1 ? 'word' : 'words'}`,
@@ -420,7 +431,7 @@ export const UI_COPY: Record<UiLanguage, UiCopy> = {
     listen: '朗读',
     preparingDefinition: '正在理解当前语境…',
     localPreviewBadge: '本地词典无结果 · 未调用文本 AI',
-    simpleDictionaryBadge: '简明英英词典 · 本地查询',
+    simpleDictionaryBadge: '英文释义',
     mimoLiveBadge: '文本 AI 实时语境释义',
     sentenceSpeed: '原句语速',
     normalSentenceSpeed: '正常 · 1.0×',
@@ -433,11 +444,11 @@ export const UI_COPY: Record<UiLanguage, UiCopy> = {
     noRecordedPronunciation: '词典暂时没有这个单词的真人录音。',
     refineWithContext: '结合原句确认这个词义',
     refiningContext: '正在用文本 AI 判断当前词义…',
-    showChineseHint: '显示中文参考',
-    hideChineseHint: '隐藏中文参考',
-    preparingChineseHint: '正在准备中文参考…',
-    localChineseReferenceLabel: '本地中文参考 · ECDICT',
-    mimoChineseHintLabel: '当前语境中文提示 · 文本 AI',
+    showChineseHint: '显示中文释义',
+    hideChineseHint: '隐藏中文释义',
+    preparingChineseHint: '正在准备中文释义…',
+    localChineseReferenceLabel: '中文释义 · 本地 ECDICT',
+    mimoChineseHintLabel: '当前语境中文释义 · 文本 AI',
     audioAttribution: (artist, license) => `录音：${artist} · ${license}`,
     headwordAudioAttribution: (sourceWord, artist, license) =>
       `当前词形暂无真人录音，正在播放词典原型：${sourceWord}。录音：${artist} · ${license}`,
@@ -467,6 +478,11 @@ export const UI_COPY: Record<UiLanguage, UiCopy> = {
     audioCount: (count) => `${count} 个音频`,
     audioListLabel: '已导入听力音频列表',
     openListening: '打开音频',
+    deleteListening: '删除',
+    deleteListeningTitle: '删除这个音频？',
+    confirmDeleteListening: (title) =>
+      `应用内导入的“${title}”音频副本及其逐句文本将被删除且无法恢复。你原来选择的源文件、生词本和查词记录会继续保留。`,
+    cancelDeleteListening: '保留音频',
     notTranscribed: '尚未转写',
     emptyListeningTitle: '导入你的第一个英语音频。',
     emptyListeningBody: '导入 MP3 或 WAV 文件，音频和转写都只保存在这台电脑上。',
@@ -493,6 +509,7 @@ export const UI_COPY: Record<UiLanguage, UiCopy> = {
     continueFromSentence: (index) => `从第 ${index} 句附近继续播放`,
     listeningImported: (fileName) => `已导入 ${fileName}`,
     transcriptReady: (count) => `本地转写已完成 · ${count} 句话`,
+    listeningDeleted: (title) => `已删除“${title}”`,
     notebookEyebrow: '保存在本机',
     notebookTitle: '生词本',
     wordCount: (count) => `${count} 个单词`,

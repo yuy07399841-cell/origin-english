@@ -53,13 +53,17 @@ interface ListeningLibraryProps {
   language: UiLanguage
   copy: UiCopy
   onOpen: (id: string) => void
+  onRequestDelete: (item: ListeningItem) => void
+  transcribingItemId: string | null
 }
 
 export function ListeningLibrary({
   items,
   language,
   copy,
-  onOpen
+  onOpen,
+  onRequestDelete,
+  transcribingItemId
 }: ListeningLibraryProps): React.JSX.Element {
   const locale = language === 'zh' ? 'zh-CN' : 'en-US'
   return (
@@ -97,6 +101,15 @@ export function ListeningLibrary({
                 </span>
                 <time>{copy.importedOn(new Date(item.importedAt).toLocaleDateString(locale))}</time>
                 <span className="article-open" aria-hidden="true">›</span>
+              </button>
+              <button
+                type="button"
+                className="article-delete-button"
+                aria-label={`${copy.deleteListening}: ${item.title}`}
+                disabled={transcribingItemId === item.id}
+                onClick={() => onRequestDelete(item)}
+              >
+                {copy.deleteListening}
               </button>
             </article>
           ))}

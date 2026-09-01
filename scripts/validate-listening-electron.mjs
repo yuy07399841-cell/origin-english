@@ -7,6 +7,7 @@ import { dirname, join, resolve } from 'node:path'
 const projectDirectory = resolve(import.meta.dirname, '..')
 const sampleAudioPath = join(projectDirectory, 'artifacts', 'tts-audition', 'mia.wav')
 const screenshotPath = join(projectDirectory, 'artifacts', 'listening-module-ui.png')
+const executableOverride = process.env.ORIGIN_ENGLISH_EXECUTABLE?.trim()
 
 async function findFreePort() {
   const server = createServer()
@@ -93,7 +94,12 @@ const storedFileName = 'audio-abc123.wav'
 const storedPath = join(mediaDirectory, storedFileName)
 const sourceStats = await stat(sampleAudioPath)
 const port = await findFreePort()
-const electronPath = join(projectDirectory, 'node_modules', 'electron', 'dist', 'electron.exe')
+const electronPath = executableOverride
+  ? resolve(executableOverride)
+  : join(projectDirectory, 'node_modules', 'electron', 'dist', 'electron.exe')
+const electronArguments = executableOverride
+  ? [`--remote-debugging-port=${port}`]
+  : ['.', `--remote-debugging-port=${port}`]
 let electronProcess
 let client
 let electronErrors = ''
@@ -129,7 +135,7 @@ try {
     'utf8'
   )
 
-  electronProcess = spawn(electronPath, ['.', `--remote-debugging-port=${port}`], {
+  electronProcess = spawn(electronPath, electronArguments, {
     cwd: projectDirectory,
     env: {
       ...process.env,
@@ -248,6 +254,16 @@ try {
       if (definitionPanel.querySelector('.sentence-playback-controls')) {
         throw new Error('Listening dictionary card incorrectly includes sentence speed controls');
       }
+      const definitionBadge = definitionPanel.querySelector('.source-badge')?.textContent?.trim();
+      if (definitionBadge !== '英文释义') {
+        throw new Error('The simplified English definition label was not rendered');
+      }
+      const chineseMeaningToggle = definitionPanel
+        .querySelector('.chinese-hint-block .text-button')
+        ?.textContent?.trim();
+      if (chineseMeaningToggle !== '显示中文释义') {
+        throw new Error('The Chinese meaning toggle label was not rendered');
+      }
       const saveButton = definitionPanel.querySelector('.primary-button.wide');
       saveButton.click();
       const finalState = await waitFor(async () => {
@@ -265,6 +281,8 @@ try {
         firstSentence: transcript.sentences[0],
         continuousPlaybackFromTime: playbackProbe[0],
         selectedWord: definitionPanel.querySelector('.word-line h2')?.textContent?.trim(),
+        definitionBadge,
+        chineseMeaningToggle,
         savedWordCount: finalState.savedWords.length,
         listeningCardHasSentenceTts: Boolean(definitionPanel.querySelector('.panel-heading .icon-button')),
         liveMimoEnabled: runtimeStatus.liveMimoEnabled
@@ -281,11 +299,93 @@ try {
   })
   await mkdir(dirname(screenshotPath), { recursive: true })
   await writeFile(screenshotPath, Buffer.from(screenshot.data, 'base64'))
+  const deletionEvaluation = await client.send('Runtime.evaluate', {
+    expression: `(async () => {
+      const waitFor = async (predicate, message, timeoutMs = 10000) => {
+        const deadline = Date.now() + timeoutMs;
+        while (Date.now() < deadline) {
+          const value = await predicate();
+          if (value) return value;
+          await new Promise((resolveWait) => setTimeout(resolveWait, 50));
+        }
+        throw new Error(message);
+      };
+
+      document.querySelector('.reader-titlebar .back-button')?.click();
+      const row = await waitFor(
+        () => document.querySelector('.listening-row'),
+        'Listening library did not return after closing the player'
+      );
+      const deleteButton = row.querySelector('.article-delete-button');
+      if (!deleteButton || deleteButton.textContent.trim() !== '删除') {
+        throw new Error('Listening delete button was not rendered');
+      }
+
+      deleteButton.click();
+      const firstDialog = await waitFor(
+        () => document.querySelector('[aria-labelledby="delete-listening-title"]'),
+        'Listening delete confirmation did not open'
+      );
+      const confirmation = firstDialog.querySelector('p')?.textContent?.trim() ?? '';
+      if (!confirmation.includes('源文件') || !confirmation.includes('生词本')) {
+        throw new Error('Listening delete confirmation does not explain preserved data');
+      }
+      firstDialog.querySelector('.secondary-button')?.click();
+      await waitFor(
+        () => !document.querySelector('[aria-labelledby="delete-listening-title"]'),
+        'Listening delete confirmation did not close after cancel'
+      );
+      const stateAfterCancel = await window.originEnglish.loadState();
+      if (stateAfterCancel.listeningItems.length !== 1) {
+        throw new Error('Canceling listening deletion changed the library');
+      }
+
+      document.querySelector('.listening-row .article-delete-button')?.click();
+      const secondDialog = await waitFor(
+        () => document.querySelector('[aria-labelledby="delete-listening-title"]'),
+        'Listening delete confirmation did not reopen'
+      );
+      secondDialog.querySelector('.confirm-delete-button')?.click();
+      await waitFor(
+        () => !document.querySelector('.listening-row'),
+        'Listening row remained after confirmed deletion'
+      );
+      const finalState = await window.originEnglish.loadState();
+      if (finalState.listeningItems.length !== 0 || finalState.savedWords.length !== 1) {
+        throw new Error('Confirmed deletion did not preserve the expected learning records');
+      }
+      const removedAudioRejected = await window.originEnglish.getListeningAudio('abc123')
+        .then(() => false)
+        .catch(() => true);
+      if (!removedAudioRejected) throw new Error('Deleted listening audio can still be loaded');
+
+      return JSON.stringify({
+        confirmation,
+        cancelPreservedItem: stateAfterCancel.listeningItems.length === 1,
+        confirmedItemCount: finalState.listeningItems.length,
+        savedWordCount: finalState.savedWords.length,
+        removedAudioRejected
+      });
+    })()`,
+    awaitPromise: true,
+    returnByValue: true
+  })
+  const deletionResult = checkedValue(deletionEvaluation)
   const persistedState = JSON.parse(await readFile(join(dataDirectory, 'state.json'), 'utf8'))
-  if (!persistedState.listeningItems[0].transcript || persistedState.savedWords.length !== 1) {
-    throw new Error('Listening state did not persist to disk')
+  if (persistedState.listeningItems.length !== 0 || persistedState.savedWords.length !== 1) {
+    throw new Error('Listening deletion did not persist while preserving saved words')
   }
-  console.log(JSON.stringify(result))
+  await stat(storedPath)
+    .then(() => {
+      throw new Error('Managed listening audio remained after confirmed deletion')
+    })
+    .catch((error) => {
+      if (error.code !== 'ENOENT') throw error
+    })
+  if ((await stat(sampleAudioPath)).size !== sourceStats.size) {
+    throw new Error('The original source audio changed during managed-copy deletion')
+  }
+  console.log(JSON.stringify({ ...result, deletion: deletionResult }))
 } catch (error) {
   if (electronErrors) console.error(electronErrors)
   throw error

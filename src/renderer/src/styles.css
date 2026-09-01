@@ -1030,6 +1030,16 @@ button:focus-visible {
   background: #fbf3f1;
 }
 
+.article-delete-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.article-delete-button:disabled:hover {
+  border-color: transparent;
+  background: transparent;
+}
+
 .article-monogram {
   display: grid;
   place-items: center;
@@ -1906,10 +1916,6 @@ button:focus-visible {
   background: #354a40;
   box-shadow: 0 12px 32px rgba(29, 39, 34, 0.2);
   font-size: 12px;
-}
-
-.listening-row {
-  grid-template-columns: minmax(0, 1fr);
 }
 
 .listening-row .article-open-button {

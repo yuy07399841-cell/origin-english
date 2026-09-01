@@ -440,4 +440,8 @@ export class LocalListeningTranscriptionService {
     this.active = { id: item.id, promise }
     return promise
   }
+
+  isTranscribing(id: string): boolean {
+    return this.active?.id === id
+  }
 }

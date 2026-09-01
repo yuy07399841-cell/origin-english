@@ -115,7 +115,7 @@ export class OpenAiCompatibleDefinitionProvider implements DefinitionProvider {
 
   async define(request: DefinitionRequest): Promise<DefinitionResult> {
     const parsed = await this.completeJson(
-      'Choose the exact sense of the selected English word in the sentence. Write for a beginning English learner. The definition must use common words and no more than 18 words. Return JSON only with non-empty string fields partOfSpeech, definition, and usage. Usage must be one short, natural example or pattern and must not repeat the definition.',
+      'Choose the exact sense of the selected English word in the sentence. Write for a beginning English learner. The English definition must use common words and no more than 18 words. Also give one short natural Simplified Chinese meaning for that exact sense; do not translate the whole sentence. Return JSON only with non-empty string fields partOfSpeech, definition, chineseDefinition, and usage. Usage must be one short, natural example or pattern and must not repeat the definition.',
       { word: request.word, sentence: request.sentence },
       256
     )
@@ -124,6 +124,12 @@ export class OpenAiCompatibleDefinitionProvider implements DefinitionProvider {
       partOfSpeech: requireModelOutputString(parsed.partOfSpeech, 'part of speech', 80),
       definition: requireModelOutputString(parsed.definition, 'definition', 1_200),
       usage: requireModelOutputString(parsed.usage, 'usage', 1_200),
+      contextualChineseHint: {
+        hint: requireModelOutputString(parsed.chineseDefinition, 'Chinese definition', 80),
+        source: 'openai-compatible',
+        sourceUrl: null,
+        contextual: true
+      },
       source: 'openai-compatible',
       notice: 'Context sent: selected word and current sentence only',
       phonetic: null,
