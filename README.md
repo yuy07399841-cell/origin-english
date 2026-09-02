@@ -2,9 +2,9 @@
 
 原境英语是一款面向 Windows 的本地英语阅读与听力练习应用。它把文章阅读、上下文查词、生词本、原句朗读、本地音频转写和跟随文本练习放在同一个安静、适合长时间使用的桌面界面中。
 
-> Current source and local desktop version: `0.2.2`. Latest public installer: `0.2.1`. The interface supports Chinese and English.
+> Current source, local desktop version, and latest public installer: `0.2.2`. The interface supports Chinese and English.
 
-![原境英语阅读首页](docs/images/reading-home.png)
+![原境英语专注阅读页](docs/images/reading-home.png)
 
 ## 主要功能
 
@@ -26,7 +26,7 @@ AI 服务由用户自行配置。当前支持 MiMo，以及用于文本能力的
 
 ## 安装
 
-正式安装包通过 GitHub Releases 提供，不提交进 Git 历史。`0.2.1` 的 Windows x64 安装包约 530 MiB，包含本地 Small.EN 模型和 whisper.cpp 运行库。
+正式安装包通过 GitHub Releases 提供，不提交进 Git 历史。[`0.2.2` 个人测试版](https://github.com/yuy07399841-cell/origin-english/releases/tag/v0.2.2)的 Windows x64 安装包约 530 MiB，包含本地 Small.EN 模型和 whisper.cpp 运行库。
 
 当前个人测试版尚未进行 Windows 代码签名，手动安装时可能出现 SmartScreen 提示。请只从本仓库的正式 Release 下载，并核对发布页提供的 SHA-256。
 
