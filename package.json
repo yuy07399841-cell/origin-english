@@ -3,6 +3,7 @@
   "productName": "原境英语",
   "version": "0.2.2",
   "private": true,
+  "license": "MIT",
   "author": "yuy",
   "description": "A calm Windows reading workspace for contextual English practice.",
   "main": "./out/main/index.js",

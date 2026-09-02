@@ -73,7 +73,7 @@ npm run release:win
 - OpenAI Whisper 模型与 whisper.cpp 运行库遵循各自的 MIT License。
 - 详细归属和许可证文本见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-原境英语自身源代码的公开许可证尚未确定。在顶层 `LICENSE` 加入前，不应推定获得复制、修改或再分发本项目源代码的许可。
+除上述第三方内容外，原境英语自身源代码采用 [MIT License](LICENSE)。你可以使用、复制、修改和再分发代码，也可以用于商业用途，但需要保留版权与许可证声明。
 
 ## 仓库边界
 
