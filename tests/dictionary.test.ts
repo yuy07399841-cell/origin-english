@@ -1,7 +1,7 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { SimpleEnglishDictionary } from '../src/main/dictionary'
 import { EcdictChineseDictionary } from '../src/main/chinese-dictionary'
 import { LocalFirstChineseReferenceService } from '../src/main/chinese-reference'
@@ -85,10 +85,8 @@ describe('local Simple English dictionary', () => {
   it('resolves an inflected word to a beginner definition without calling the fallback', async () => {
     const dictionary = await createDictionary()
     const chineseReference = await createChineseReference(dictionary)
-    const fallback = { define: vi.fn() }
     const provider = new DictionaryFirstDefinitionProvider(
       dictionary,
-      fallback,
       chineseReference
     )
 
@@ -106,36 +104,34 @@ describe('local Simple English dictionary', () => {
       hasAlternativeSenses: true,
       hasChineseReference: true
     })
-    expect(fallback.define).not.toHaveBeenCalled()
+    expect(result.senses).toEqual([
+      {
+        partOfSpeech: 'verb',
+        definition: 'to become aware of something',
+        usage: 'I noticed the change.'
+      },
+      {
+        partOfSpeech: 'verb',
+        definition: 'to give attention to something',
+        usage: ''
+      }
+    ])
   })
 
-  it('uses the fallback only when the local dictionary has no entry', async () => {
+  it('reports a local miss without silently calling text AI', async () => {
     const dictionary = await createDictionary()
     const chineseReference = await createChineseReference(dictionary)
-    const fallbackResult = {
-      word: 'unlisted',
-      partOfSpeech: 'word',
-      definition: 'fallback meaning',
-      usage: '',
-      contextualChineseHint: null,
-      source: 'preview' as const,
-      notice: 'fallback',
-      phonetic: null,
-      hasAudio: false,
-      hasAlternativeSenses: false,
-      hasChineseReference: false,
-      sourceUrl: null
-    }
-    const fallback = { define: vi.fn(async () => fallbackResult) }
     const provider = new DictionaryFirstDefinitionProvider(
       dictionary,
-      fallback,
       chineseReference
     )
     await expect(
       provider.define({ word: 'unlisted', sentence: 'This word is unlisted.' })
-    ).resolves.toEqual(fallbackResult)
-    expect(fallback.define).toHaveBeenCalledOnce()
+    ).resolves.toMatchObject({
+      word: 'unlisted',
+      source: 'not-found',
+      definition: ''
+    })
   })
 
   it('prefers an inflected recording and otherwise reports the headword recording', async () => {

@@ -1,15 +1,18 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
+import { Children, cloneElement, isValidElement, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import type {
   AppState,
   Article,
+  ArticleAssetResult,
+  ArticleUrlImportResult,
   ChineseHintResult,
   DefinitionRequest,
   DefinitionResult,
   ListeningItem,
   RuntimeStatus,
   SavedWord,
-  UiLanguage
+  UiLanguage,
+  VideoImportProgress
 } from '../../shared/types'
 import { toPlainArticleTitle } from '../../shared/article-title'
 import { UI_COPY, type UiCopy } from './i18n'
@@ -28,8 +31,70 @@ import {
 import { usesHeadwordAudio, WordAudioSessionCache } from './word-audio-session'
 import { ListeningLibrary, ListeningWorkspace } from './Listening'
 import { AiServiceSettings, AiServiceStatusButton } from './AiServiceSettings'
+import { ClickableText } from './ClickableText'
+import { ImportSourceDialog, type UrlImportKind } from './ImportSourceDialog'
 
 type View = 'reading' | 'listening' | 'notebook'
+
+/** 正文图片在本机保存后的引用形式：origin-asset://<articleId>/<storedFileName> */
+const ARTICLE_ASSET_SCHEME = 'origin-asset://'
+
+const IMAGE_MIME_BY_EXTENSION: Record<string, ArticleAssetResult['mimeType']> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp'
+}
+
+/**
+ * ReactMarkdown 默认只放行 http/https/mailto 等协议，会把本机图片协议
+ * `origin-asset://` 净化成空字符串，导致正文图片永远拿不到地址。
+ * 这里只额外放行「本机图片」与「data:image」，其余仍交给默认净化器，
+ * 因此 `javascript:` 之类的危险协议依旧被拦掉。
+ */
+function transformArticleUrl(url: string): string {
+  if (url.startsWith(ARTICLE_ASSET_SCHEME) || url.startsWith('data:image/')) return url
+  return defaultUrlTransform(url)
+}
+
+/** Let the Markdown parser handle image syntax; load only this article's managed asset. */
+function ArticleImage({ articleId, src = '', alt = '', title }: {
+  articleId: string; src?: string; alt?: string; title?: string
+}): React.JSX.Element {
+  const [resolved, setResolved] = useState<{ source: string; dataUrl: string } | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const prefix = `${ARTICLE_ASSET_SCHEME}${articleId}/`
+    if (!src.startsWith(prefix)) return
+    const name = src.slice(prefix.length)
+    if (!name || name.includes('/') || name.includes('\\')) return
+    void window.originEnglish.getArticleAsset(articleId, name).then((asset) => {
+      if (!cancelled) setResolved({ source: src, dataUrl: asset.dataUrl })
+    }).catch(() => {
+      if (!cancelled) setResolved(null)
+    })
+    return () => { cancelled = true }
+  }, [articleId, src])
+  const source = src.startsWith('data:image/') ? src : resolved?.source === src ? resolved.dataUrl : ''
+  const extension = source.startsWith('data:image/') ? source.slice('data:image/'.length, source.indexOf(';')) : ''
+  if (!IMAGE_MIME_BY_EXTENSION[extension]) return <span className="reading-image-missing">{alt}</span>
+  return <img src={source} alt={alt} title={title} loading="lazy" />
+}
+
+function formatByteProgress(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  return `${Math.round(bytes / 1024)} KB`
+}
+
+function formatVideoImportProgress(progress: VideoImportProgress): string {
+  if (typeof progress.downloadedBytes === 'number') {
+    return typeof progress.totalBytes === 'number'
+      ? `${formatByteProgress(progress.downloadedBytes)} of ${formatByteProgress(progress.totalBytes)}`
+      : formatByteProgress(progress.downloadedBytes)
+  }
+  return progress.message
+}
 
 function errorMessage(error: unknown, copy: UiCopy): string {
   return error instanceof Error ? error.message : copy.genericError
@@ -70,12 +135,14 @@ function SentencePlaybackControls({
 }
 
 interface ReadingArticleProps {
+  articleId: string
   markdown: string
   linksDisabled: string
   onSelectWord: (request: DefinitionRequest) => void
 }
 
-function ReadingArticle({
+export function ReadingArticle({
+  articleId,
   markdown,
   linksDisabled,
   onSelectWord
@@ -91,15 +158,42 @@ function ReadingArticle({
     if (request) onSelectWord(request)
   }
 
+  /** 正文里可点击查词的文本块：保持原排版，只把单词包成可点的 span。 */
+  const clickableChildren = (children: React.ReactNode): React.ReactNode =>
+    Children.map(children, (child) => {
+      if (typeof child === 'string') return <ClickableText text={child} onSelectWord={onSelectWord} />
+      if (!isValidElement<{ children?: React.ReactNode }>(child) || child.type === 'code' || child.type === 'pre') return child
+      if (child.props.children === undefined) return child
+      return cloneElement(child, { children: clickableChildren(child.props.children) })
+    })
+
+  const clickable = (Tag: 'p' | 'li' | 'blockquote' | 'h1' | 'h2' | 'h3' | 'h4') =>
+    function ClickableBlock({ children }: { children?: React.ReactNode }): React.JSX.Element {
+      // Some imported pages use escaped underscores instead of a semantic divider.
+      if (Tag === 'p' && typeof children === 'string' && /^_{3,}$/.test(children.trim())) {
+        return <hr />
+      }
+      return <Tag>{clickableChildren(children)}</Tag>
+    }
+
   return (
     <article ref={articleRef} className="reading-paper" onMouseUp={handleSelection}>
       <ReactMarkdown
+        urlTransform={transformArticleUrl}
         components={{
           a: ({ children }) => (
             <span className="safe-link" title={linksDisabled}>
               {children}
             </span>
-          )
+          ),
+          p: clickable('p'),
+          li: clickable('li'),
+          blockquote: clickable('blockquote'),
+          h1: clickable('h1'),
+          h2: clickable('h2'),
+          h3: clickable('h3'),
+          h4: clickable('h4'),
+          img: ({ src, alt, title }) => <ArticleImage articleId={articleId} src={typeof src === 'string' ? src : ''} alt={alt} title={title} />
         }}
       >
         {markdown}
@@ -131,7 +225,7 @@ interface DefinitionPanelProps {
   onSave: () => void
 }
 
-function DefinitionPanel({
+export function DefinitionPanel({
   request,
   definition,
   loading,
@@ -153,6 +247,16 @@ function DefinitionPanel({
   onToggleChineseHint,
   onSave
 }: DefinitionPanelProps): React.JSX.Element {
+  // 注意：这个 state 必须在提前 return 之前声明，否则违反 Hooks 调用顺序，
+  // 展开义项后的重渲染会丢失。
+  const [otherSensesVisible, setOtherSensesVisible] = useState(false)
+  useEffect(() => { setOtherSensesVisible(false) }, [request?.word, request?.sentence])
+
+  // 除首条以外还有义项时才允许展开，避免出现无内容的开关。
+  const otherSenses = (definition?.senses ?? []).slice(1)
+  const hasOtherSenses = otherSenses.length > 0
+  const localMiss = definition?.source === 'not-found'
+
   if (!request) {
     return (
       <aside className="definition-panel definition-empty">
@@ -210,7 +314,40 @@ function DefinitionPanel({
             ) : null}
           </div>
           {audioAttribution ? <small className="audio-attribution">{audioAttribution}</small> : null}
-          <p className="definition-copy">{definition.definition}</p>
+          <p className="definition-copy">
+            {localMiss ? copy.wordNotFoundLocally : definition.definition}
+          </p>
+          {hasOtherSenses ? (
+            <div className="dictionary-senses">
+              <button
+                className="text-button"
+                aria-expanded={otherSensesVisible}
+                onClick={() => setOtherSensesVisible((visible) => !visible)}
+              >
+                {otherSensesVisible ? copy.hideOtherSenses : copy.showOtherSenses}
+              </button>
+              {otherSensesVisible ? (
+                <ol>
+                  {otherSenses.map((sense, index) => (
+                    <li key={`${sense.partOfSpeech}-${index}`}>
+                      {sense.partOfSpeech ? <span className="sense-pos">{sense.partOfSpeech}</span> : null}
+                      <p>{sense.definition}</p>
+                      {sense.usage ? <small>{sense.usage}</small> : null}
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+            </div>
+          ) : null}
+          {localMiss && canUseTextAi ? (
+            <button
+              className="secondary-button definition-action"
+              onClick={onRefineDefinition}
+              disabled={refiningDefinition}
+            >
+              {refiningDefinition ? copy.refiningContext : copy.useAiForMissingWord}
+            </button>
+          ) : null}
           {definition.usage ? (
             <div className="usage-box">
               <span>{copy.usage}</span>
@@ -533,6 +670,9 @@ export default function App(): React.JSX.Element {
   const [notice, setNotice] = useState<string | null>(null)
   const [sentencePlaybackRate, setSentencePlaybackRate] = useState<SentencePlaybackRate>(1)
   const [sentenceAudioLoadingText, setSentenceAudioLoadingText] = useState<string | null>(null)
+  const [importSource, setImportSource] = useState<'reading' | 'listening' | null>(null)
+  const [urlImporting, setUrlImporting] = useState(false)
+  const [videoImportProgress, setVideoImportProgress] = useState<VideoImportProgress | null>(null)
   const sentenceAudioCache = useRef(new SentenceAudioSessionCache())
   const wordAudioCache = useRef(new WordAudioSessionCache())
   const lookupSequence = useRef(0)
@@ -721,6 +861,7 @@ export default function App(): React.JSX.Element {
     try {
       const article = await window.originEnglish.importMarkdown()
       if (!article) return
+      setImportSource(null)
       setState((current) =>
         current ? { ...current, articles: [article, ...current.articles] } : current
       )
@@ -734,11 +875,38 @@ export default function App(): React.JSX.Element {
     }
   }
 
+  const importArticleFromUrl = async (url: string): Promise<void> => {
+    setError(null)
+    setUrlImporting(true)
+    try {
+      const result: ArticleUrlImportResult = await window.originEnglish.importArticleUrl(url)
+      setImportSource(null)
+      setState((current) =>
+        current ? { ...current, articles: [result.article, ...current.articles] } : current
+      )
+      clearDefinitionSelection()
+      setOpenArticleId(result.article.id)
+      setOpenListeningId(null)
+      setView('reading')
+      setNotice(
+        result.warnings.length > 0
+          ? `${copy.imported(result.article.title)} ${result.warnings.join(' ')}`
+          : copy.imported(result.article.title)
+      )
+    } catch (importError) {
+      // 失败时保留对话框，便于修正网址后重试。
+      setError(errorMessage(importError, copy))
+    } finally {
+      setUrlImporting(false)
+    }
+  }
+
   const importListening = async (): Promise<void> => {
     setError(null)
     try {
       const item = await window.originEnglish.importListening()
       if (!item) return
+      setImportSource(null)
       setState((current) =>
         current
           ? { ...current, listeningItems: [item, ...current.listeningItems] }
@@ -752,6 +920,44 @@ export default function App(): React.JSX.Element {
     } catch (importError) {
       setError(errorMessage(importError, copy))
     }
+  }
+
+  const importListeningFromUrl = async (kind: UrlImportKind, url: string): Promise<void> => {
+    setError(null)
+    setUrlImporting(true)
+    setVideoImportProgress(null)
+    try {
+      let item: ListeningItem
+      if (kind === 'video') {
+        item = await window.originEnglish.importListeningVideoUrl(url, (progress) =>
+          setVideoImportProgress(progress)
+        )
+      } else {
+        item = await window.originEnglish.importListeningAudioUrl(url)
+      }
+      setImportSource(null)
+      setState((current) =>
+        current
+          ? { ...current, listeningItems: [item, ...current.listeningItems] }
+          : current
+      )
+      clearDefinitionSelection()
+      setOpenArticleId(null)
+      setOpenListeningId(item.id)
+      setView('listening')
+      setNotice(copy.listeningImported(item.title))
+    } catch (importError) {
+      // 组件准备失败时同样保留对话框，让用户能重试或取消。
+      setError(errorMessage(importError, copy))
+    } finally {
+      setVideoImportProgress(null)
+      setUrlImporting(false)
+    }
+  }
+
+  const handleImportFromUrl = (kind: UrlImportKind, url: string): void => {
+    if (importSource === 'reading') void importArticleFromUrl(url)
+    else void importListeningFromUrl(kind, url)
   }
 
   const transcribeListening = async (item: ListeningItem): Promise<void> => {
@@ -1072,6 +1278,7 @@ export default function App(): React.JSX.Element {
         <main className="focused-reading-layout">
           <section className="article-column focused-article-column">
             <ReadingArticle
+              articleId={openArticle.id}
               markdown={openArticle.markdown}
               linksDisabled={copy.linksDisabled}
               onSelectWord={selectWord}
@@ -1221,11 +1428,17 @@ export default function App(): React.JSX.Element {
             </button>
           </div>
           {view === 'reading' ? (
-            <button className="primary-button topbar-import" onClick={importArticle}>
+            <button
+              className="primary-button topbar-import"
+              onClick={() => setImportSource('reading')}
+            >
               {copy.import}
             </button>
           ) : view === 'listening' ? (
-            <button className="primary-button topbar-import" onClick={importListening}>
+            <button
+              className="primary-button topbar-import"
+              onClick={() => setImportSource('listening')}
+            >
               {copy.import}
             </button>
           ) : null}
@@ -1353,6 +1566,25 @@ export default function App(): React.JSX.Element {
             setAiSettingsError(null)
             setAiSettingsOpen(false)
           }}
+        />
+      ) : null}
+
+      {importSource ? (
+        <ImportSourceDialog
+          kind={importSource}
+          language={state.uiLanguage}
+          busy={urlImporting}
+          progress={videoImportProgress}
+          onClose={() => {
+            if (urlImporting && videoImportProgress) window.originEnglish.cancelListeningVideoImport()
+            setImportSource(null)
+            setVideoImportProgress(null)
+          }}
+          onLocal={() => {
+            if (importSource === 'reading') void importArticle()
+            else void importListening()
+          }}
+          onUrl={handleImportFromUrl}
         />
       ) : null}
     </div>

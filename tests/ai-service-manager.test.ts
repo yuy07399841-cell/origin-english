@@ -196,4 +196,27 @@ describe('AI service runtime switching', () => {
     })
     expect(fetchMock).toHaveBeenCalledOnce()
   })
+
+  it('does not call text AI when the public Chinese lookup has no local entry', async () => {
+    const fetchMock = vi.fn(async () => {
+      throw new Error('Text AI must not be called by the Chinese reveal control.')
+    }) as typeof fetch
+    const manager = await createManager(fetchMock)
+    await manager.configure({
+      textProvider: 'openai-compatible',
+      textBaseUrl: 'https://models.example.test/v1',
+      textModel: 'learner-model',
+      textApiKey: 'text-manager-test-key',
+      sentenceAudioEnabled: false,
+      sentenceAudioCredentialMode: 'separate',
+      sentenceAudioApiKey: ''
+    })
+
+    await expect(manager.getChineseHint({
+      word: 'unlisted',
+      sentence: 'This word is unlisted.',
+      definition: 'not listed'
+    })).rejects.toThrow(/No local Chinese reference/)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
 })

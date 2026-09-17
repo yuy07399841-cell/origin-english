@@ -8,6 +8,7 @@ import {
   dialog,
   ipcMain,
   safeStorage,
+  type IpcMainEvent,
   type IpcMainInvokeEvent,
   type OpenDialogOptions
 } from 'electron'
@@ -18,6 +19,8 @@ import ecdictNoticeAssetPath from './assets/ECDICT_NOTICE.txt?asset'
 import type {
   AppState,
   Article,
+  ArticleAssetResult,
+  ArticleUrlImportResult,
   ChineseHintResult,
   DefinitionResult,
   ListeningAudioResult,
@@ -46,7 +49,7 @@ import {
 } from './validation'
 import { WikimediaWordAudioService } from './word-audio'
 import { ORIGIN_ENGLISH_APP_ID, resolveOriginEnglishUserDataPath } from './app-paths'
-import { deleteArticleFromState } from './article-state'
+import { deleteArticleWithAssets, importArticleFromUrl, loadArticleAsset } from './article-url-import'
 import {
   importListeningFile,
   loadListeningAudio,
@@ -54,13 +57,19 @@ import {
 } from './listening-media'
 import { deleteListeningItemFromState } from './listening-state'
 import { LocalListeningTranscriptionService } from './listening-transcription'
+import { importListeningFromAudioUrl } from './listening-url-import'
+import { importListeningFromVideoPage } from './video-audio-import'
+import { VideoComponentManager, VIDEO_COMPONENT_RELEASE } from './video-components'
 
 const MAX_MARKDOWN_BYTES = 5 * 1024 * 1024
 let store: LocalStore
 let aiServiceManager: AiServiceManager
 let wordAudioService: WikimediaWordAudioService | null = null
 let listeningMediaDirectory: string
+let articleAssetsDirectory: string
+let videoComponentManager: VideoComponentManager
 let listeningTranscriptionService: LocalListeningTranscriptionService | null = null
+const activeVideoImports = new Map<string, AbortController>()
 
 const userDataOverride = process.env.ORIGIN_ENGLISH_USER_DATA_DIR?.trim()
 app.setPath(
@@ -69,7 +78,7 @@ app.setPath(
 )
 if (process.platform === 'win32') app.setAppUserModelId(ORIGIN_ENGLISH_APP_ID)
 
-function assertTrustedSender(event: IpcMainInvokeEvent): void {
+function assertTrustedSender(event: IpcMainInvokeEvent | IpcMainEvent): void {
   const senderUrl = event.senderFrame?.url ?? ''
   const rendererRootUrl = pathToFileURL(`${resolve(__dirname, '../renderer')}${sep}`).href
   const developmentOrigin = process.env.ELECTRON_RENDERER_URL
@@ -182,13 +191,75 @@ async function importListening(event: IpcMainInvokeEvent): Promise<ListeningItem
 function registerIpcHandlers(): void {
   ipcMain.handle('article:import', importMarkdown)
 
+  ipcMain.handle('article:import-url', async (event, rawUrl): Promise<ArticleUrlImportResult> => {
+    assertTrustedSender(event)
+    if (typeof rawUrl !== 'string' || !rawUrl.trim() || rawUrl.length > 2_048) {
+      throw new Error('Enter a valid public article URL.')
+    }
+    return importArticleFromUrl(rawUrl.trim(), store, articleAssetsDirectory)
+  })
+
+  ipcMain.handle('article:asset', async (event, rawArticleId, rawStoredFileName): Promise<ArticleAssetResult> => {
+    assertTrustedSender(event)
+    const articleId = validateId(rawArticleId)
+    if (typeof rawStoredFileName !== 'string') throw new Error('The saved article image reference is invalid.')
+    const current = await store.read()
+    const article = current.articles.find((candidate) => candidate.id === articleId)
+    if (!article) throw new Error('This article is no longer in the local library.')
+    return loadArticleAsset(article, articleAssetsDirectory, rawStoredFileName)
+  })
+
   ipcMain.handle('article:delete', async (event, rawId): Promise<AppState> => {
     assertTrustedSender(event)
     const id = validateId(rawId)
-    return store.update((current) => deleteArticleFromState(current, id))
+    return deleteArticleWithAssets(store, id, articleAssetsDirectory)
   })
 
   ipcMain.handle('listening:import', importListening)
+
+  ipcMain.handle('listening:import-audio-url', async (event, rawUrl): Promise<ListeningItem> => {
+    assertTrustedSender(event)
+    if (typeof rawUrl !== 'string' || !rawUrl.trim() || rawUrl.length > 2_048) {
+      throw new Error('Enter a valid public audio URL.')
+    }
+    return importListeningFromAudioUrl(rawUrl.trim(), store, listeningMediaDirectory)
+  })
+
+  ipcMain.handle('listening:import-video-url', async (event, rawUrl, rawRequestId): Promise<ListeningItem> => {
+    assertTrustedSender(event)
+    if (typeof rawUrl !== 'string' || !rawUrl.trim() || rawUrl.length > 2_048) {
+      throw new Error('Enter a valid public video page URL.')
+    }
+    if (typeof rawRequestId !== 'string' || !/^video-import-\d{1,12}$/.test(rawRequestId)) {
+      throw new Error('The video import request is invalid.')
+    }
+    const key = `${event.sender.id}:${rawRequestId}`
+    const controller = new AbortController()
+    activeVideoImports.set(key, controller)
+    try {
+      return await importListeningFromVideoPage(rawUrl.trim(), store, listeningMediaDirectory, {
+        componentProvider: videoComponentManager,
+        signal: controller.signal,
+        onProgress: (progress) => {
+          if (!event.sender.isDestroyed()) {
+            event.sender.send('listening:video-import-progress', { requestId: rawRequestId, progress })
+          }
+        }
+      })
+    } finally {
+      if (activeVideoImports.get(key) === controller) activeVideoImports.delete(key)
+    }
+  })
+
+  ipcMain.on('listening:cancel-video-import', (event, rawRequestId) => {
+    try {
+      assertTrustedSender(event)
+      if (typeof rawRequestId !== 'string' || !/^video-import-\d{1,12}$/.test(rawRequestId)) return
+      activeVideoImports.get(`${event.sender.id}:${rawRequestId}`)?.abort()
+    } catch {
+      // Ignore cancellation messages from untrusted or already-closing renderers.
+    }
+  })
 
   ipcMain.handle('listening:delete', async (event, rawId): Promise<AppState> => {
     assertTrustedSender(event)
@@ -413,6 +484,12 @@ app.whenReady().then(async () => {
   const dataDirectory = join(app.getPath('userData'), 'origin-english')
   store = new LocalStore(join(dataDirectory, 'state.json'))
   listeningMediaDirectory = join(dataDirectory, 'listening-media')
+  articleAssetsDirectory = join(dataDirectory, 'article-assets')
+  videoComponentManager = new VideoComponentManager({
+    directory: join(dataDirectory, 'video-components'),
+    release: VIDEO_COMPONENT_RELEASE,
+    artifactCacheDirectory: process.env.ORIGIN_ENGLISH_VIDEO_COMPONENT_CACHE_DIR?.trim() || undefined
+  })
   const transcriptionBundleRoot = app.isPackaged
     ? join(process.resourcesPath, 'transcription')
     : join(app.getAppPath(), '.validation', 'listening-spike')

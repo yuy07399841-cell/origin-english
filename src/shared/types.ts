@@ -8,6 +8,23 @@ export interface Article {
   fileName: string
   markdown: string
   importedAt: string
+  sourceUrl?: string | null
+  assets?: Array<{
+    storedFileName: string
+    mimeType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+    bytes: number
+  }>
+}
+
+export interface ArticleUrlImportResult {
+  article: Article
+  warnings: string[]
+}
+
+export interface ArticleAssetResult {
+  dataUrl: string
+  mimeType: NonNullable<Article['assets']>[number]['mimeType']
+  bytes: number
 }
 
 export interface ListeningSentence {
@@ -33,12 +50,20 @@ export interface ListeningItem {
   bytes: number
   importedAt: string
   transcript: ListeningTranscript | null
+  sourceUrl?: string | null
 }
 
 export interface ListeningAudioResult {
   dataUrl: string
   mimeType: ListeningItem['mimeType']
   bytes: number
+}
+
+export interface VideoImportProgress {
+  stage: 'checking' | 'downloading' | 'verifying' | 'preparing' | 'extracting'
+  message: string
+  downloadedBytes?: number
+  totalBytes?: number | null
 }
 
 export interface DefinitionRequest {
@@ -52,13 +77,18 @@ export interface DefinitionResult {
   definition: string
   usage: string
   contextualChineseHint: ChineseHintResult | null
-  source: 'simple-wiktionary' | 'preview' | 'mimo' | 'openai-compatible'
+  source: 'simple-wiktionary' | 'preview' | 'mimo' | 'openai-compatible' | 'not-found'
   notice: string
   phonetic: string | null
   hasAudio: boolean
   hasAlternativeSenses: boolean
   hasChineseReference: boolean
   sourceUrl: string | null
+  senses?: Array<{
+    partOfSpeech: string
+    definition: string
+    usage: string
+  }>
 }
 
 export interface ChineseHintRequest extends DefinitionRequest {
@@ -192,8 +222,13 @@ export interface AiServiceSettingsUpdate {
 
 export interface OriginEnglishApi {
   importMarkdown: () => Promise<Article | null>
+  importArticleUrl: (url: string) => Promise<ArticleUrlImportResult>
+  getArticleAsset: (articleId: string, storedFileName: string) => Promise<ArticleAssetResult>
   deleteArticle: (id: string) => Promise<AppState>
   importListening: () => Promise<ListeningItem | null>
+  importListeningAudioUrl: (url: string) => Promise<ListeningItem>
+  importListeningVideoUrl: (url: string, onProgress?: (progress: VideoImportProgress) => void) => Promise<ListeningItem>
+  cancelListeningVideoImport: () => void
   deleteListening: (id: string) => Promise<AppState>
   getListeningAudio: (id: string) => Promise<ListeningAudioResult>
   transcribeListening: (id: string) => Promise<AppState>

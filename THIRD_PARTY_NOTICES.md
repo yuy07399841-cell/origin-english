@@ -55,3 +55,28 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 ## JavaScript and Electron dependencies
 
 Runtime and development dependencies, their exact versions and package licenses are recorded in `package-lock.json`. Electron distributions also include Chromium and related third-party notices in their generated license files.
+
+## On-demand video components
+
+Only after the user actively starts a supported video-page import, 原境英语 downloads the following fixed Windows x64 components into its managed local data directory. Every archive and executable is checked against the pinned SHA-256 values before execution. This on-demand delivery does not remove or weaken the components' license obligations.
+
+### yt-dlp
+
+- Version: `2026.08.19`
+- Immutable release: https://github.com/yt-dlp/yt-dlp/releases/tag/2026.08.19
+- Downloaded file: `yt-dlp.exe`
+- SHA-256: `66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a`
+- Upstream source: https://github.com/yt-dlp/yt-dlp/tree/2026.08.19
+- License note: yt-dlp source is primarily Unlicense; the official PyInstaller executable includes additional third-party licenses compiled into the executable, as documented by the release publisher.
+
+### FFmpeg Windows build
+
+- Build: `autobuild-2026-09-14-13-17`, `ffmpeg-N-126549-ga51bb69b09-win64-gpl.zip`
+- Immutable release: https://github.com/BtbN/FFmpeg-Builds/releases/tag/autobuild-2026-09-14-13-17
+- Archive SHA-256: `d1bd0d4e6ad451ce42de02a13757c46b6f182489c51e5a4a311013b2d3f920a2`
+- Extracted `ffmpeg.exe` SHA-256: `8be2934fe6208ef37d725e09838bf099be9ea040ddc343abd5e3651a057b6730`
+- Build source: https://github.com/BtbN/FFmpeg-Builds/tree/3e6685e
+- FFmpeg source: https://github.com/FFmpeg/FFmpeg
+- License: GPLv3 or later for this selected GPL build. The archive's `LICENSE.txt` is retained next to the managed executable. License text: https://www.gnu.org/licenses/gpl-3.0.html
+
+No automatic component update system is implemented. Before publishing a desktop build that enables this delivery, the distributor must complete the applicable GPL source-availability and notice review; downloading at first use is not treated as a way around those duties.

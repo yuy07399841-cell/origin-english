@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { copyFile, mkdir, readFile, rename, rm, stat } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import type { ListeningAudioResult, ListeningItem } from '../shared/types'
 
@@ -77,6 +77,54 @@ export async function importListeningFile(
       bytes: sourceStats.size,
       importedAt: options.importedAt ?? new Date().toISOString(),
       transcript: null
+    }
+  }
+}
+
+export async function importListeningBytes(
+  content: Buffer,
+  fileName: string,
+  mimeType: ListeningItem['mimeType'],
+  mediaDirectory: string,
+  options: { id?: string; importedAt?: string; sourceUrl?: string } = {}
+): Promise<{ item: ListeningItem; storedPath: string }> {
+  if (content.length === 0 || content.length > MAX_LISTENING_AUDIO_BYTES) {
+    throw new Error('The downloaded audio is empty or larger than the 100 MB limit.')
+  }
+  const isMp3 = content.subarray(0, 3).toString('ascii') === 'ID3' ||
+    (content.length >= 2 && content[0] === 0xff && (content[1] & 0xe0) === 0xe0)
+  const isWav = content.subarray(0, 4).toString('ascii') === 'RIFF' &&
+    content.subarray(8, 12).toString('ascii') === 'WAVE'
+  if ((mimeType === 'audio/mpeg' && !isMp3) || (mimeType === 'audio/wav' && !isWav)) {
+    throw new Error('The downloaded file does not contain valid MP3 or WAV audio.')
+  }
+  const extension = mimeType === 'audio/mpeg' ? '.mp3' : '.wav'
+  const id = options.id ?? randomUUID()
+  if (!/^[a-f0-9-]+$/.test(id)) throw new Error('The generated audio id is invalid.')
+  const storedFileName = managedFileName(id, extension)
+  const storedPath = join(mediaDirectory, storedFileName)
+  const temporaryPath = `${storedPath}.${process.pid}.tmp`
+  await mkdir(mediaDirectory, { recursive: true })
+  try {
+    await writeFile(temporaryPath, content)
+    await rename(temporaryPath, storedPath)
+  } catch (error) {
+    await rm(temporaryPath, { force: true }).catch(() => undefined)
+    throw error
+  }
+  const safeFileName = basename(fileName) || `downloaded-audio${extension}`
+  return {
+    storedPath,
+    item: {
+      id,
+      title: basename(safeFileName, extname(safeFileName)) || 'Downloaded audio',
+      fileName: safeFileName,
+      storedFileName,
+      mimeType,
+      bytes: content.length,
+      importedAt: options.importedAt ?? new Date().toISOString(),
+      transcript: null,
+      sourceUrl: options.sourceUrl ?? null
     }
   }
 }

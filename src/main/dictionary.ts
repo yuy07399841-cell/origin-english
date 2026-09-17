@@ -102,7 +102,12 @@ export class SimpleEnglishDictionary {
       hasAudio: Boolean(displayEntry.a ?? definitionEntry.a),
       hasAlternativeSenses: senses.length > 1,
       hasChineseReference: false,
-      sourceUrl: simpleWiktionaryUrl(definitionEntry.h)
+      sourceUrl: simpleWiktionaryUrl(definitionEntry.h),
+      senses: senses.map((sense) => ({
+        partOfSpeech: sense.partOfSpeech,
+        definition: sense.m,
+        usage: sense.e ?? ''
+      }))
     }
   }
 

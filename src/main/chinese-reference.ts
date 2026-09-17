@@ -24,6 +24,12 @@ export class LocalFirstChineseReferenceService {
   async get(request: ChineseHintRequest): Promise<ChineseHintResult> {
     const local = await this.chineseDictionary.get(await this.lookupWord(request.word))
     if (local) return local
+    throw new Error('No local Chinese reference is available for this word.')
+  }
+
+  async getWithAi(request: ChineseHintRequest): Promise<ChineseHintResult> {
+    const local = await this.chineseDictionary.get(await this.lookupWord(request.word))
+    if (local) return local
     if (this.fallback) return this.fallback.getChineseHint(request)
     throw new Error('No local Chinese reference is available for this word, and text AI is not configured.')
   }

@@ -6,6 +6,7 @@ import type {
   UiLanguage
 } from '../../shared/types'
 import { getDefinitionRequestFromSelection } from './selection'
+import { ClickableText } from './ClickableText'
 import type { UiCopy } from './i18n'
 import {
   clampSeekTime,
@@ -397,7 +398,7 @@ export function ListeningWorkspace({
                 >
                   <time>{formatPlaybackTime(sentence.startMs)}</time>
                 </button>
-                <p>{sentence.text}</p>
+                <p><ClickableText text={sentence.text} onSelectWord={onSelectWord} /></p>
               </article>
             ))}
           </div>

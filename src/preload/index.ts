@@ -1,10 +1,35 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { OriginEnglishApi } from '../shared/types'
+import type { OriginEnglishApi, VideoImportProgress } from '../shared/types'
+
+let videoImportRequestSequence = 0
+let activeVideoImportRequestId: string | null = null
 
 const api: OriginEnglishApi = {
   importMarkdown: () => ipcRenderer.invoke('article:import'),
+  importArticleUrl: (url) => ipcRenderer.invoke('article:import-url', url),
+  getArticleAsset: (articleId, storedFileName) =>
+    ipcRenderer.invoke('article:asset', articleId, storedFileName),
   deleteArticle: (id) => ipcRenderer.invoke('article:delete', id),
   importListening: () => ipcRenderer.invoke('listening:import'),
+  importListeningAudioUrl: (url) => ipcRenderer.invoke('listening:import-audio-url', url),
+  importListeningVideoUrl: async (url, onProgress) => {
+    const requestId = `video-import-${++videoImportRequestSequence}`
+    activeVideoImportRequestId = requestId
+    const channel = 'listening:video-import-progress'
+    const listener = (_event: Electron.IpcRendererEvent, payload: { requestId?: unknown; progress?: unknown }): void => {
+      if (payload?.requestId === requestId && onProgress) onProgress(payload.progress as VideoImportProgress)
+    }
+    ipcRenderer.on(channel, listener)
+    try {
+      return await ipcRenderer.invoke('listening:import-video-url', url, requestId)
+    } finally {
+      ipcRenderer.removeListener(channel, listener)
+      if (activeVideoImportRequestId === requestId) activeVideoImportRequestId = null
+    }
+  },
+  cancelListeningVideoImport: () => {
+    if (activeVideoImportRequestId) ipcRenderer.send('listening:cancel-video-import', activeVideoImportRequestId)
+  },
   deleteListening: (id) => ipcRenderer.invoke('listening:delete', id),
   getListeningAudio: (id) => ipcRenderer.invoke('listening:audio', id),
   transcribeListening: (id) => ipcRenderer.invoke('listening:transcribe', id),

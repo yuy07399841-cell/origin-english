@@ -529,6 +529,15 @@ button:focus-visible {
   font-style: italic;
 }
 
+.reading-paper hr {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 1.5em 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
 .reading-paper code {
   padding: 2px 5px;
   border-radius: 5px;
@@ -2502,4 +2511,126 @@ button:focus-visible {
   .secondary-button {
     padding: 10px 12px;
   }
+}
+
+/* 正文可点击查词：不改变排版，仅让单词可点。 */
+.lookup-word {
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.lookup-word:hover {
+  background: var(--blue-soft);
+}
+
+.reading-image-missing {
+  display: inline-block;
+  padding: 6px 10px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* 文章网址导入：本地文件与网址入口并列，视频导入显示组件准备进度。 */
+.import-source-dialog .wide {
+  width: 100%;
+}
+
+.import-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.import-divider::before,
+.import-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.import-kind {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.import-kind button {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.import-kind button.active {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.video-component-notice {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--blue-soft);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.video-component-notice p {
+  margin: 0;
+}
+
+.video-component-progress {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 8px;
+  color: var(--ink);
+}
+
+.video-component-progress span {
+  white-space: nowrap;
+}
+
+/* 多义词：默认只显示第一条释义，其余按需展开。 */
+.dictionary-senses {
+  margin-top: 4px;
+}
+
+.dictionary-senses ol {
+  margin: 10px 0 16px;
+  padding-left: 22px;
+}
+
+.dictionary-senses li {
+  margin-bottom: 10px;
+}
+
+.dictionary-senses .sense-pos {
+  display: inline-block;
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dictionary-senses p {
+  margin: 2px 0;
+}
+
+.dictionary-senses small {
+  color: var(--muted);
 }

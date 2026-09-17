@@ -113,7 +113,7 @@ describe('local-first Chinese reference', () => {
       definition: 'not listed'
     }
 
-    await expect(service.get(request)).resolves.toMatchObject({
+    await expect(service.getWithAi(request)).resolves.toMatchObject({
       hint: '当前语境提示',
       source: 'mimo',
       contextual: true

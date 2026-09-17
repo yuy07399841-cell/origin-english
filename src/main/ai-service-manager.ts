@@ -72,7 +72,6 @@ export class AiServiceManager {
     )
     this.definitionProvider = new DictionaryFirstDefinitionProvider(
       this.dictionary,
-      new PreviewDefinitionProvider(),
       this.chineseReferenceService
     )
   }
@@ -90,7 +89,6 @@ export class AiServiceManager {
 
   private apply(config: ResolvedAiServiceConfig): void {
     let contextualProvider: ContextualDefinitionProvider | null = null
-    let fallbackProvider: DefinitionProvider = new PreviewDefinitionProvider()
     let mimoBudgetGuard: MiMoBudgetGuard | null = null
 
     if (config.textProvider === 'mimo' && config.textApiKey) {
@@ -104,7 +102,6 @@ export class AiServiceManager {
         fetchImpl: this.fetchImpl,
         budgetGuard: mimoBudgetGuard
       })
-      fallbackProvider = contextualProvider
     } else if (
       config.textProvider === 'openai-compatible' &&
       config.textApiKey &&
@@ -117,7 +114,6 @@ export class AiServiceManager {
         model: config.textModel,
         fetchImpl: this.fetchImpl
       })
-      fallbackProvider = contextualProvider
     }
 
     const chineseReferenceService = new LocalFirstChineseReferenceService(
@@ -127,7 +123,6 @@ export class AiServiceManager {
     )
     const definitionProvider = new DictionaryFirstDefinitionProvider(
       this.dictionary,
-      fallbackProvider,
       chineseReferenceService
     )
     const sentenceAudioService =

@@ -88,6 +88,7 @@ function isListeningItem(value: unknown): value is ListeningItem {
     Number.isSafeInteger(candidate.bytes) &&
     candidate.bytes > 0 &&
     typeof candidate.importedAt === 'string' &&
+    (candidate.sourceUrl === undefined || candidate.sourceUrl === null || typeof candidate.sourceUrl === 'string') &&
     validTranscript
   )
 }
@@ -100,7 +101,13 @@ function isArticle(value: unknown): value is Article {
     typeof candidate.title === 'string' &&
     typeof candidate.fileName === 'string' &&
     typeof candidate.markdown === 'string' &&
-    typeof candidate.importedAt === 'string'
+    typeof candidate.importedAt === 'string' &&
+    (candidate.sourceUrl === undefined || candidate.sourceUrl === null || typeof candidate.sourceUrl === 'string') &&
+    (candidate.assets === undefined || (Array.isArray(candidate.assets) && candidate.assets.every((asset) =>
+      asset && typeof asset === 'object' && /^image-\d+\.(?:jpg|png|gif|webp)$/.test(asset.storedFileName) &&
+      ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(asset.mimeType) &&
+      Number.isSafeInteger(asset.bytes) && asset.bytes > 0
+    )))
   )
 }
 

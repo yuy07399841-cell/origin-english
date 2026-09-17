@@ -81,6 +81,10 @@ export interface UiCopy {
   noRecordedPronunciation: string
   refineWithContext: string
   refiningContext: string
+  useAiForMissingWord: string
+  wordNotFoundLocally: string
+  showOtherSenses: string
+  hideOtherSenses: string
   showChineseHint: string
   hideChineseHint: string
   preparingChineseHint: string
@@ -266,6 +270,10 @@ export const UI_COPY: Record<UiLanguage, UiCopy> = {
     noRecordedPronunciation: 'No dictionary recording is available for this word.',
     refineWithContext: 'Use the sentence to refine this meaning',
     refiningContext: 'Checking this sense with text AI…',
+    useAiForMissingWord: 'Use text AI to explain this word',
+    wordNotFoundLocally: 'This word is not in the local dictionary. No text AI request was made.',
+    showOtherSenses: 'Show other dictionary senses',
+    hideOtherSenses: 'Hide other dictionary senses',
     showChineseHint: 'Show Chinese meaning',
     hideChineseHint: 'Hide Chinese meaning',
     preparingChineseHint: 'Preparing the Chinese meaning…',
@@ -444,6 +452,10 @@ export const UI_COPY: Record<UiLanguage, UiCopy> = {
     noRecordedPronunciation: '词典暂时没有这个单词的真人录音。',
     refineWithContext: '结合原句确认这个词义',
     refiningContext: '正在用文本 AI 判断当前词义…',
+    useAiForMissingWord: '用文本 AI 解释这个单词',
+    wordNotFoundLocally: '本地词典没有收录这个单词，尚未请求文本 AI。',
+    showOtherSenses: '展开其他词典义项',
+    hideOtherSenses: '收起其他词典义项',
     showChineseHint: '显示中文释义',
     hideChineseHint: '隐藏中文释义',
     preparingChineseHint: '正在准备中文释义…',
