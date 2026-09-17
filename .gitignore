@@ -15,6 +15,7 @@ artifacts/
 .env
 .env.*
 !.env.example
+!.env.sentry.local.example
 **/ai-services.json
 **/state.json
 **/listening-media/
@@ -34,3 +35,7 @@ artifacts/
 # Internal product records remain local unless explicitly sanitized for publication
 /项目总览与下一步.md
 /问题与报错日志.md
+/docs/plans/
+
+# Local e2e scratch profiles (contain real credentials and user data)
+/.scratch/
